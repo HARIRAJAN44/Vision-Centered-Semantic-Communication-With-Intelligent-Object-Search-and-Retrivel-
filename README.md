@@ -81,4 +81,20 @@ To clearly demonstrate why VCSC is superior to traditional codecs, follow these 
    - Change the method to **VCSC (Neural)**.
    - Crucially, set Quantization to **4-bit Attention (Base Paper)**.
    - Leave SNR at **0 dB** and tap transmit.
-   - Despite the extreme noise, the Neural Decoder successfully reconstructs the semantic meaning of the image! 
+   - Despite the extreme noise, the Neural Decoder successfully reconstructs the semantic meaning of the image!
+
+---
+
+## 🐳 Running with Docker (Portable)
+
+You can run this entire project on any system (Windows, Mac, Linux) without installing Python dependencies by using Docker.
+
+1. **Build the Docker Image** (Run this once in the project folder):
+   ```bash
+   docker build -t vcsc-server .
+   ```
+2. **Run the Container**:
+   ```bash
+   docker run -p 5000:5000 vcsc-server
+   ```
+3. The server is now running! You can access the receiver at `http://localhost:5000/receiver` and use the same mobile connection methods as above. 
