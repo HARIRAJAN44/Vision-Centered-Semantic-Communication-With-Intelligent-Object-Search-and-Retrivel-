@@ -1,0 +1,16 @@
+torch>=2.0.0
+torchvision
+diffusers
+transformers
+accelerate
+safetensors
+pillow
+numpy
+scipy
+scikit-image
+lpips
+matplotlib
+pandas
+flask
+komm
+pytest

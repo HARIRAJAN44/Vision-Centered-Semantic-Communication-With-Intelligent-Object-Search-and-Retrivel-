@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireless Surveillance - Transmitter</title>
+    <!-- Include Socket.IO client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: 'Inter', 'Roboto', sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-align: center; }
+        h1 { font-size: 1.5em; margin-bottom: 5px; color: #4CAF50; }
+        h2 { font-size: 1.1em; color: #aaa; margin-bottom: 20px; }
+        
+        .camera-container {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        video { width: 100%; height: 100%; object-fit: cover; display: none; }
+        canvas { display: none; }
+        
+        .status-panel { display: flex; justify-content: space-between; margin-bottom: 20px; padding: 15px; background: #2a2a2a; border-radius: 8px; text-align: left; font-size: 0.9em; }
+        .status-dot { height: 12px; width: 12px; background-color: #f44336; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .connected { background-color: #4CAF50; box-shadow: 0 0 8px #4CAF50; }
+        
+        button {
+            background-color: #4CAF50; color: white; border: none; padding: 12px 24px; font-size: 1.1em; border-radius: 6px; cursor: pointer; transition: background 0.3s; width: 100%; font-weight: bold; margin-bottom: 15px;
+        }
+        button:hover { background-color: #45a049; }
+        button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
+        button.stop { background-color: #f44336; }
+        button.stop:hover { background-color: #d32f2f; }
+        button.capture { background-color: #2196F3; }
+        button.capture:hover { background-color: #1976D2; }
+        
+        .controls { text-align: left; margin-bottom: 20px; }
+        .control-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; color: #bbb; font-size: 0.9em; }
+        select { width: 100%; padding: 10px; background: #333; color: white; border: 1px solid #444; border-radius: 4px; }
+        
+        .permission-denied { color: #f44336; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WIRELESS TRANSMITTER</h1>
+        <h2>Vision-Centered Semantic Communication</h2>
+        
+        <div class="status-panel">
+            <div>
+                <span id="socket-status-dot" class="status-dot"></span> Server: <span id="socket-status">Disconnected</span>
+            </div>
+            <div>
+                Method: <strong id="current-method">VCSC</strong>
+            </div>
+        </div>
+        
+        <div class="camera-container" id="camera-container">
+            <span id="camera-placeholder">Camera Offline</span>
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div id="permission-error" class="permission-denied">
+            Camera permission denied. Please allow access and try again.
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Resolution (Controls Source Size)</label>
+                <select id="resolution">
+                    <option value="240">240p (426x240)</option>
+                    <option value="480" selected>480p (854x480)</option>
+                    <option value="720">720p (1280x720)</option>
+                </select>
+            </div>
+        </div>
+        
+        <button id="start-btn">ALLOW CAMERA</button>
+        <button id="capture-btn" class="capture" style="display: none;">TAKE PHOTO & TRANSMIT</button>
+        <button id="stop-btn" class="stop" style="display: none;">STOP CAMERA</button>
+        
+        <div class="status-panel" style="flex-direction: column; gap: 8px;">
+            <div>FPS: <span id="fps-counter">0</span></div>
+            <div>Frames Sent: <span id="frames-sent">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const captureBtn = document.getElementById('capture-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const placeholder = document.getElementById('camera-placeholder');
+        const errorMsg = document.getElementById('permission-error');
+        const resolutionSelect = document.getElementById('resolution');
+        
+        let stream = null;
+        let frameCount = 0;
+        
+        // Resolutions map
+        const resolutions = {
+            '240': { w: 426, h: 240 },
+            '480': { w: 854, h: 480 },
+            '720': { w: 1280, h: 720 }
+        };
+
+        // Socket Events
+        socket.on('connect', () => {
+            document.getElementById('socket-status').innerText = 'Connected';
+            document.getElementById('socket-status-dot').classList.add('connected');
+        });
+        
+        socket.on('disconnect', () => {
+            document.getElementById('socket-status').innerText = 'Disconnected';
+            document.getElementById('socket-status-dot').classList.remove('connected');
+        });
+        
+        socket.on('config_updated', (config) => {
+            document.getElementById('current-method').innerText = config.method.toUpperCase();
+        });
+
+        // Start Camera
+        startBtn.addEventListener('click', async () => {
+            errorMsg.style.display = 'none';
+            try {
+                // Request camera
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" },
+                    audio: false 
+                });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                placeholder.style.display = 'none';
+                
+                startBtn.style.display = 'none';
+                captureBtn.style.display = 'block';
+                stopBtn.style.display = 'block';
+                
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                errorMsg.style.display = 'block';
+            }
+        });
+
+        // Stop Camera
+        stopBtn.addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            video.style.display = 'none';
+            placeholder.style.display = 'block';
+            startBtn.style.display = 'block';
+            captureBtn.style.display = 'none';
+            stopBtn.style.display = 'none';
+        });
+
+        // Frame Transmission
+        captureBtn.addEventListener('click', () => {
+            const res = resolutions[resolutionSelect.value];
+            canvas.width = res.w;
+            canvas.height = res.h;
+            
+            // Draw current video frame to canvas
+            ctx.drawImage(video, 0, 0, res.w, res.h);
+            
+            // Convert to base64 JPEG
+            const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+            
+            // Send over WebSocket
+            socket.emit('video_frame', { image: dataURL });
+            
+            frameCount++;
+            document.getElementById('frames-sent').innerText = frameCount;
+            document.getElementById('fps-counter').innerText = '1 (Photo Mode)';
+        });
+    </script>
+</body>
+</html>

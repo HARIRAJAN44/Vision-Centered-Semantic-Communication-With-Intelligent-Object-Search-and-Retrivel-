@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireless Surveillance - Receiver</title>
+    <!-- Include Socket.IO client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        
+        /* Header */
+        .header { grid-column: 1 / -1; text-align: center; background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d; }
+        h1 { margin: 0; color: #58a6ff; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
+        .subtitle { color: #8b949e; margin-top: 5px; font-size: 14px; }
+        
+        /* Panel */
+        .panel { background: #161b22; border-radius: 12px; border: 1px solid #30363d; padding: 20px; }
+        .panel-title { font-size: 14px; text-transform: uppercase; color: #8b949e; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        
+        /* Controls */
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .control-item { display: flex; flex-direction: column; }
+        label { font-size: 12px; color: #8b949e; margin-bottom: 5px; text-transform: uppercase; }
+        select, input[type="range"] { background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; padding: 8px; border-radius: 6px; }
+        
+        /* Buttons Group */
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn { flex: 1; padding: 10px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: bold; }
+        .btn.active { background: #238636; border-color: #2ea043; color: #fff; }
+        
+        /* Video Container */
+        .video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .video-container img { width: 100%; height: 100%; object-fit: contain; }
+        .watermark { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #2ea043; }
+        .watermark.offline { color: #f85149; }
+        
+        /* Logs */
+        .log-container { font-family: 'Courier New', Courier, monospace; font-size: 12px; height: 350px; overflow-y: auto; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #161b22; padding-bottom: 4px; }
+        .log-time { color: #8b949e; margin-right: 8px; }
+        
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
+        .stat-box { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; text-align: center; }
+        .stat-val { font-size: 18px; font-weight: bold; color: #58a6ff; margin: 5px 0; }
+        .stat-label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
+        
+        /* Slider wrapper */
+        .slider-wrapper { display: flex; align-items: center; gap: 10px; }
+        .slider-wrapper span { font-family: monospace; font-size: 14px; width: 60px; text-align: right; }
+        
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Wireless Vision-Centered Semantic Communication</h1>
+        <div class="subtitle">Real-Time Wireless Surveillance Receiver Dashboard</div>
+    </div>
+    
+    <div class="panel">
+        <div class="panel-title">Configuration</div>
+        
+        <div class="btn-group">
+            <button class="btn active" id="btn-vcsc" onclick="setMethod('vcsc')">VCSC</button>
+            <button class="btn" id="btn-jpeg" onclick="setMethod('jpeg')">JPEG</button>
+            <button class="btn" id="btn-huffman" onclick="setMethod('huffman')">HUFFMAN</button>
+        </div>
+        <div class="btn-group">
+            <button class="btn active" id="btn-awgn" onclick="setChannel('awgn')">AWGN</button>
+            <button class="btn" id="btn-rayleigh" onclick="setChannel('rayleigh')">RAYLEIGH</button>
+        </div>
+        
+        <div class="controls-grid">
+            <div class="control-item">
+                <label>VCSC Quantization</label>
+                <select id="quantization" onchange="sendConfig()">
+                    <option value="8bit">8-bit Uniform</option>
+                    <option value="4bit-attn">4-bit Attention</option>
+                    <option value="4bit">4-bit Uniform</option>
+                    <option value="2bit">2-bit Uniform</option>
+                </select>
+            </div>
+            <div class="control-item">
+                <label>Attention Threshold</label>
+                <select id="threshold" onchange="sendConfig()">
+                    <option value="0.2">T = 0.2</option>
+                    <option value="0.4">T = 0.4</option>
+                </select>
+            </div>
+            <div class="control-item" style="justify-content: center;">
+                <label><input type="checkbox" id="turbo" checked onchange="sendConfig()"> Use Turbo Coding</label>
+            </div>
+        </div>
+        
+        <div class="control-item" style="margin-bottom: 15px;">
+            <label>Physical Channel Noise (SNR)</label>
+            <div class="slider-wrapper">
+                <input type="range" id="snr" min="0" max="35" step="1" value="10" style="flex: 1" onchange="sendConfig()">
+                <span id="snr-val">10 dB</span>
+            </div>
+        </div>
+        
+        <div class="control-item">
+            <label>Simulated Bandwidth</label>
+            <div class="slider-wrapper">
+                <input type="range" id="bandwidth" min="0.1" max="20" step="0.1" value="5.0" style="flex: 1" onchange="sendConfig()">
+                <span id="bw-val">5.0 MHz</span>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="panel">
+        <div class="panel-title">Live Received Video</div>
+        <div class="video-container">
+            <div class="watermark offline" id="watermark">● WAITING FOR TRANSMITTER...</div>
+            <img id="received-video" style="display: none;">
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">SSIM</div>
+                <div class="stat-val" id="val-ssim">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">PSNR</div>
+                <div class="stat-val" id="val-psnr">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">CLIP</div>
+                <div class="stat-val" id="val-clip">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">LPIPS</div>
+                <div class="stat-val" id="val-lpips">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Compression</div>
+                <div class="stat-val" id="val-comp">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Payload Size</div>
+                <div class="stat-val" id="val-payload">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Tx Delay (Sim)</div>
+                <div class="stat-val" id="val-txdelay">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Processing</div>
+                <div class="stat-val" id="val-proctime">-</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="panel">
+        <div class="panel-title">Transmission Log</div>
+        <div class="log-container" id="log-box"></div>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    const logBox = document.getElementById('log-box');
+    const watermark = document.getElementById('watermark');
+    const receivedImg = document.getElementById('received-video');
+    
+    // Sliders UI update
+    document.getElementById('snr').addEventListener('input', function() {
+        document.getElementById('snr-val').innerText = this.value + ' dB';
+    });
+    document.getElementById('bandwidth').addEventListener('input', function() {
+        document.getElementById('bw-val').innerText = parseFloat(this.value).toFixed(1) + ' MHz';
+    });
+    
+    function logMessage(msg) {
+        const time = new Date().toLocaleTimeString('en-US', {hour12: false, fractionalSecondDigits: 3});
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        div.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+        logBox.appendChild(div);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+    
+    socket.on('connect', () => {
+        logMessage('Receiver connected to base station server.');
+    });
+    
+    let currentMethod = 'vcsc';
+    let currentChannel = 'awgn';
+    
+    function setMethod(method) {
+        currentMethod = method;
+        document.querySelectorAll('#btn-vcsc, #btn-jpeg, #btn-huffman').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + method).classList.add('active');
+        sendConfig();
+    }
+    
+    function setChannel(ch) {
+        currentChannel = ch;
+        document.querySelectorAll('#btn-awgn, #btn-rayleigh').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + ch).classList.add('active');
+        sendConfig();
+    }
+    
+    function sendConfig() {
+        const config = {
+            method: currentMethod,
+            channel: currentChannel,
+            quantization: document.getElementById('quantization').value,
+            threshold: document.getElementById('threshold').value,
+            turbo: document.getElementById('turbo').checked,
+            snr: document.getElementById('snr').value,
+            bandwidth: document.getElementById('bandwidth').value
+        };
+        socket.emit('update_config', config);
+        logMessage(`Configuration updated: ${currentMethod.toUpperCase()} | ${currentChannel.toUpperCase()} | SNR: ${config.snr}dB`);
+    }
+
+    socket.on('reconstructed_frame', (data) => {
+        // Update Video
+        watermark.innerText = '● LIVE FEED';
+        watermark.classList.remove('offline');
+        receivedImg.style.display = 'block';
+        receivedImg.src = 'data:image/jpeg;base64,' + data.reconstructed;
+        
+        // Update Stats
+        const m = data.metrics;
+        const s = data.stats;
+        
+        document.getElementById('val-ssim').innerText = m.ssim ? m.ssim.toFixed(3) : '-';
+        document.getElementById('val-psnr').innerText = m.psnr ? m.psnr.toFixed(2) : '-';
+        document.getElementById('val-clip').innerText = m.clip_similarity ? m.clip_similarity.toFixed(3) : '-';
+        document.getElementById('val-lpips').innerText = m.lpips ? m.lpips.toFixed(3) : '-';
+        
+        document.getElementById('val-comp').innerText = s.compression_rate ? s.compression_rate.toFixed(2) + '%' : '-';
+        document.getElementById('val-payload').innerText = s.comp_bits ? (s.comp_bits / 8000).toFixed(1) + ' KB' : '-';
+        document.getElementById('val-txdelay').innerText = s.transmission_time_ms ? s.transmission_time_ms.toFixed(1) + ' ms' : '-';
+        document.getElementById('val-proctime').innerText = ((s.enc_time + s.dec_time) * 1000).toFixed(0) + ' ms';
+        
+        // Add Logs
+        data.logs.forEach(msg => logMessage(msg));
+    });
+</script>
+</body>
+</html>

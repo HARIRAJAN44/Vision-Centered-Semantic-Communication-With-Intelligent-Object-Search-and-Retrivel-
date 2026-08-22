@@ -1,0 +1,35 @@
+model:
+  name: stable-diffusion-v1-5
+
+image:
+  width: 512
+  height: 512
+
+quantization:
+  default: 8bit
+  attention_thresholds:
+    - 0.2
+    - 0.4
+
+channel:
+  default: awgn
+  snr_db:
+    - 0
+    - 5
+    - 10
+    - 15
+    - 20
+    - 25
+    - 30
+    - 35
+
+rayleigh:
+  scatterers: 16
+  doppler_hz: 10
+
+turbo:
+  enabled: true
+  iterations: 5
+
+baselines:
+  jpeg_quality: 80

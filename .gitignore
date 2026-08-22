@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+.vscode/
+.idea/
+datasets/traffic_detection/*
+datasets/smartcity/*
+results/*
+!results/.gitkeep
