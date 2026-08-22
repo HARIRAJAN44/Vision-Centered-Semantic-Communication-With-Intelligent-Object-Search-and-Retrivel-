@@ -21,8 +21,9 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install dependencies
-# We use --no-cache-dir to reduce image size
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip first to prevent hash mismatch errors, then install requirements
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .
