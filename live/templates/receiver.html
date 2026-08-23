@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wireless Surveillance - Receiver</title>
     <!-- Include Socket.IO client -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/static/socket.io.min.js"></script>
     <style>
         body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
@@ -164,7 +164,16 @@
 </div>
 
 <script>
-    const socket = io();
+    let currentMethod = 'vcsc';
+    let currentChannel = 'awgn';
+    
+    let socket;
+    try {
+        socket = io();
+    } catch(e) {
+        console.error("Socket.IO not loaded. Ensure static files are accessible.");
+    }
+    
     const logBox = document.getElementById('log-box');
     const watermark = document.getElementById('watermark');
     const receivedImg = document.getElementById('received-video');
@@ -186,12 +195,11 @@
         logBox.scrollTop = logBox.scrollHeight;
     }
     
-    socket.on('connect', () => {
-        logMessage('Receiver connected to base station server.');
-    });
-    
-    let currentMethod = 'vcsc';
-    let currentChannel = 'awgn';
+    if (socket) {
+        socket.on('connect', () => {
+            logMessage('Receiver connected to base station server.');
+        });
+    }
     
     function setMethod(method) {
         currentMethod = method;
@@ -217,34 +225,44 @@
             snr: document.getElementById('snr').value,
             bandwidth: document.getElementById('bandwidth').value
         };
-        socket.emit('update_config', config);
+        if (socket) {
+            socket.emit('update_config', config);
+        }
         logMessage(`Configuration updated: ${currentMethod.toUpperCase()} | ${currentChannel.toUpperCase()} | SNR: ${config.snr}dB`);
     }
 
-    socket.on('reconstructed_frame', (data) => {
-        // Update Video
-        watermark.innerText = '● LIVE FEED';
-        watermark.classList.remove('offline');
-        receivedImg.style.display = 'block';
-        receivedImg.src = 'data:image/jpeg;base64,' + data.reconstructed;
-        
-        // Update Stats
-        const m = data.metrics;
-        const s = data.stats;
-        
-        document.getElementById('val-ssim').innerText = m.ssim ? m.ssim.toFixed(3) : '-';
-        document.getElementById('val-psnr').innerText = m.psnr ? m.psnr.toFixed(2) : '-';
-        document.getElementById('val-clip').innerText = m.clip_similarity ? m.clip_similarity.toFixed(3) : '-';
-        document.getElementById('val-lpips').innerText = m.lpips ? m.lpips.toFixed(3) : '-';
-        
-        document.getElementById('val-comp').innerText = s.compression_rate ? s.compression_rate.toFixed(2) + '%' : '-';
-        document.getElementById('val-payload').innerText = s.comp_bits ? (s.comp_bits / 8000).toFixed(1) + ' KB' : '-';
-        document.getElementById('val-txdelay').innerText = s.transmission_time_ms ? s.transmission_time_ms.toFixed(1) + ' ms' : '-';
-        document.getElementById('val-proctime').innerText = ((s.enc_time + s.dec_time) * 1000).toFixed(0) + ' ms';
-        
-        // Add Logs
-        data.logs.forEach(msg => logMessage(msg));
-    });
+    if (socket) {
+        socket.on('reconstructed_frame', (data) => {
+            // Update Video
+            watermark.innerText = '● LIVE FEED';
+            watermark.classList.remove('offline');
+            receivedImg.style.display = 'block';
+            receivedImg.src = 'data:image/jpeg;base64,' + data.reconstructed;
+            
+            // Update Stats
+            const m = data.metrics;
+            const s = data.stats;
+            
+            document.getElementById('val-ssim').innerText = m.ssim ? m.ssim.toFixed(3) : '-';
+            document.getElementById('val-psnr').innerText = m.psnr ? m.psnr.toFixed(2) : '-';
+            document.getElementById('val-clip').innerText = m.clip_similarity ? m.clip_similarity.toFixed(3) : '-';
+            document.getElementById('val-lpips').innerText = m.lpips ? m.lpips.toFixed(3) : '-';
+            
+            document.getElementById('val-comp').innerText = s.compression_rate ? s.compression_rate.toFixed(2) + '%' : '-';
+            document.getElementById('val-payload').innerText = s.comp_bits ? (s.comp_bits / 8000).toFixed(1) + ' KB' : '-';
+            document.getElementById('val-txdelay').innerText = s.transmission_time_ms ? s.transmission_time_ms.toFixed(1) + ' ms' : '-';
+            document.getElementById('val-proctime').innerText = ((s.enc_time + s.dec_time) * 1000).toFixed(0) + ' ms';
+            
+            // Add visual separator for new transmission
+            const sep = document.createElement('hr');
+            sep.style.borderColor = '#30363d';
+            sep.style.margin = '10px 0';
+            logBox.appendChild(sep);
+            
+            // Add Logs
+            data.logs.forEach(msg => logMessage(msg));
+        });
+    }
 </script>
 </body>
 </html>

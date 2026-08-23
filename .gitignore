@@ -9,3 +9,4 @@ datasets/traffic_detection/*
 datasets/smartcity/*
 results/*
 !results/.gitkeep
+live/static/downloads/

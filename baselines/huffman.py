@@ -8,10 +8,15 @@ class HuffmanBaseline:
     def __init__(self, use_turbo=True, channel_type='awgn'):
         self.channel = ChannelPipeline(use_turbo=use_turbo, channel_type=channel_type)
         
-    def process(self, image: Image.Image, snr_db: float):
+    def process(self, image: Image.Image, snr_db: float, save_dir: str = None):
         # We use zlib compress as a proxy for standard Huffman/Deflate
         img_bytes = image.tobytes()
         compressed_bytes = zlib.compress(img_bytes, level=9)
+        
+        if save_dir:
+            import os
+            with open(os.path.join(save_dir, 'compressed.bin'), 'wb') as f:
+                f.write(compressed_bytes)
         
         q = torch.tensor(list(compressed_bytes), dtype=torch.uint8)
         

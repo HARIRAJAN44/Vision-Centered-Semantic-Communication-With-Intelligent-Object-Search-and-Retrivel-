@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wireless Surveillance - Transmitter</title>
     <!-- Include Socket.IO client -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/static/socket.io.min.js"></script>
     <style>
         body { font-family: 'Inter', 'Roboto', sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-align: center; }
@@ -97,7 +97,12 @@
     </div>
 
     <script>
-        const socket = io();
+        let socket;
+        try {
+            socket = io();
+        } catch(e) {
+            console.error("Socket.IO not loaded.", e);
+        }
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -119,19 +124,21 @@
         };
 
         // Socket Events
-        socket.on('connect', () => {
-            document.getElementById('socket-status').innerText = 'Connected';
-            document.getElementById('socket-status-dot').classList.add('connected');
-        });
-        
-        socket.on('disconnect', () => {
-            document.getElementById('socket-status').innerText = 'Disconnected';
-            document.getElementById('socket-status-dot').classList.remove('connected');
-        });
-        
-        socket.on('config_updated', (config) => {
-            document.getElementById('current-method').innerText = config.method.toUpperCase();
-        });
+        if (socket) {
+            socket.on('connect', () => {
+                document.getElementById('socket-status').innerText = 'Connected';
+                document.getElementById('socket-status-dot').classList.add('connected');
+            });
+            
+            socket.on('disconnect', () => {
+                document.getElementById('socket-status').innerText = 'Disconnected';
+                document.getElementById('socket-status-dot').classList.remove('connected');
+            });
+            
+            socket.on('config_updated', (config) => {
+                document.getElementById('current-method').innerText = config.method.toUpperCase();
+            });
+        }
 
         // Start Camera
         startBtn.addEventListener('click', async () => {
@@ -181,7 +188,9 @@
             const dataURL = canvas.toDataURL('image/jpeg', 0.85);
             
             // Send over WebSocket
-            socket.emit('video_frame', { image: dataURL });
+            if (socket) {
+                socket.emit('video_frame', { image: dataURL });
+            }
             
             frameCount++;
             document.getElementById('frames-sent').innerText = frameCount;

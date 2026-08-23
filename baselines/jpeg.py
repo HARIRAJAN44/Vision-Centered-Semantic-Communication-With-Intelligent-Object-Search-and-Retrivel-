@@ -9,11 +9,16 @@ class JPEGBaseline:
         self.quality = quality
         self.channel = ChannelPipeline(use_turbo=use_turbo, channel_type=channel_type)
         
-    def process(self, image: Image.Image, snr_db: float):
+    def process(self, image: Image.Image, snr_db: float, save_dir: str = None):
         # 1. Compress to JPEG bytes
         img_byte_arr = io.BytesIO()
         image.save(img_byte_arr, format='JPEG', quality=self.quality)
         jpeg_bytes = img_byte_arr.getvalue()
+        
+        if save_dir:
+            import os
+            with open(os.path.join(save_dir, 'compressed.jpeg'), 'wb') as f:
+                f.write(jpeg_bytes)
         
         # 2. Serialize bytes to uint8 tensor to reuse our channel
         q = torch.tensor(list(jpeg_bytes), dtype=torch.uint8)

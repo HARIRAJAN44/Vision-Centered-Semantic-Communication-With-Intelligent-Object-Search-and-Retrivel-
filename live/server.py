@@ -95,33 +95,57 @@ def handle_video_frame(data):
         quantization = config_state['quantization']
         threshold = float(config_state['threshold'])
         
+        # Setup intermediate downloads directory
+        tx_id = str(int(time.time() * 1000))
+        save_dir = os.path.join(app.static_folder, 'downloads', tx_id)
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # Save original
+        image.save(os.path.join(save_dir, 'original.png'))
+        orig_url = f"/static/downloads/{tx_id}/original.png"
+        
         t0 = time.time()
         
         if method == 'jpeg':
             jpeg_pipeline.channel.use_turbo = use_turbo
             jpeg_pipeline.channel.channel_type = channel_type
-            recon_img, comp_bits, orig_bits = jpeg_pipeline.process(image, snr)
+            recon_img, comp_bits, orig_bits = jpeg_pipeline.process(image, snr, save_dir=save_dir)
             t1 = time.time()
             stats = {'compression_rate': (comp_bits / orig_bits) * 100, 'enc_time': t1-t0, 'dec_time': 0, 'comp_bits': comp_bits}
-            logs = ["Using JPEG transmission...", f"{channel_type.upper()} channel applied (SNR: {snr}dB)"]
+            comp_url = f"/static/downloads/{tx_id}/compressed.jpeg"
+            logs = [
+                f"Original Image -> <a href='{orig_url}' target='_blank'>Download</a>",
+                f"Using JPEG transmission... -> <a href='{comp_url}' target='_blank'>Download Payload</a>",
+                f"{channel_type.upper()} channel applied (SNR: {snr}dB)"
+            ]
             
         elif method == 'huffman':
             huffman_pipeline.channel.use_turbo = use_turbo
             huffman_pipeline.channel.channel_type = channel_type
-            recon_img, comp_bits, orig_bits = huffman_pipeline.process(image, snr)
+            recon_img, comp_bits, orig_bits = huffman_pipeline.process(image, snr, save_dir=save_dir)
             t1 = time.time()
             stats = {'compression_rate': (comp_bits / orig_bits) * 100, 'enc_time': t1-t0, 'dec_time': 0, 'comp_bits': comp_bits}
-            logs = ["Using Huffman (zlib) transmission...", f"{channel_type.upper()} channel applied (SNR: {snr}dB)"]
+            comp_url = f"/static/downloads/{tx_id}/compressed.bin"
+            logs = [
+                f"Original Image -> <a href='{orig_url}' target='_blank'>Download</a>",
+                f"Using Huffman (zlib) transmission... -> <a href='{comp_url}' target='_blank'>Download Payload</a>",
+                f"{channel_type.upper()} channel applied (SNR: {snr}dB)"
+            ]
             
         else:
             # VCSC
             vcsc_pipeline.channel.use_turbo = use_turbo
             vcsc_pipeline.channel.channel_type = channel_type
-            recon_img, stats = vcsc_pipeline.process_image(image, quantization, snr, threshold)
+            recon_img, stats = vcsc_pipeline.process_image(image, quantization, snr, threshold, save_dir=save_dir)
             stats['comp_bits'] = stats['compressed_bits']
+            
+            latent_url = f"/static/downloads/{tx_id}/latent.pt"
+            comp_url = f"/static/downloads/{tx_id}/quantized_stream.bin"
+            
             logs = [
-                f"VAE encoding ({stats['enc_time']:.2f}s) -> Latent 1x4x64x64",
-                f"Quantization ({quantization}) & Serialization",
+                f"Original Image -> <a href='{orig_url}' target='_blank'>Download</a>",
+                f"VAE encoding ({stats['enc_time']:.2f}s) -> Latent 1x4x64x64 -> <a href='{latent_url}' target='_blank'>Download Latent</a>",
+                f"Quantization ({quantization}) & Serialization -> <a href='{comp_url}' target='_blank'>Download Payload</a>",
                 "Turbo encoding" if use_turbo else "Turbo bypassed",
                 f"BPSK Mod -> {channel_type.upper()} Channel (SNR: {snr}dB) -> BPSK Demod",
                 "Turbo decoding" if use_turbo else "Turbo bypassed",
@@ -144,6 +168,12 @@ def handle_video_frame(data):
             recon_img = recon_img.resize((512, 512), resample=Image.Resampling.LANCZOS)
             
         metrics = evaluator.evaluate(image, recon_img)
+        
+        # Save reconstructed image
+        recon_path = os.path.join(save_dir, 'reconstructed.png')
+        recon_img.save(recon_path)
+        recon_url = f"/static/downloads/{tx_id}/reconstructed.png"
+        logs.append(f"Reconstructed Image -> <a href='{recon_url}' target='_blank'>Download</a>")
         
         # Convert images to base64
         buffered_orig = BytesIO()

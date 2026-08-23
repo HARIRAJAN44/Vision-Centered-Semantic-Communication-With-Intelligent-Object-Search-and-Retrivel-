@@ -17,7 +17,7 @@ class VCSCPipeline:
         self.decoder = SemanticDecoder(device=self.device)
         self.channel = ChannelPipeline(use_turbo=use_turbo, channel_type=channel_type)
         
-    def process_image(self, image_input, quant_mode: str, snr_db: float, threshold: float = 0.2):
+    def process_image(self, image_input, quant_mode: str, snr_db: float, threshold: float = 0.2, save_dir: str = None):
         if isinstance(image_input, str):
             print(f"--- Processing {image_input} ---")
             img = load_image(image_input)
@@ -35,6 +35,8 @@ class VCSCPipeline:
         z = self.encoder.encode(img_tensor)
         enc_time = time.time() - start_enc
         print(f"Latent shape: {z.shape}, Encoding time: {enc_time:.4f}s")
+        if save_dir:
+            torch.save(z.cpu(), os.path.join(save_dir, 'latent.pt'))
         
         # 3. Quantize
         if quant_mode == '8bit':
@@ -43,6 +45,9 @@ class VCSCPipeline:
             q, meta = quantize_attention_4bit(z, threshold=threshold)
         else:
             raise ValueError(f"Unknown quantization mode: {quant_mode}")
+            
+        if save_dir:
+            q.cpu().numpy().tofile(os.path.join(save_dir, 'quantized_stream.bin'))
             
         original_bits = 512 * 512 * 3 * 8
         compressed_bits = q.numel() * 8 # Approximation of payload
