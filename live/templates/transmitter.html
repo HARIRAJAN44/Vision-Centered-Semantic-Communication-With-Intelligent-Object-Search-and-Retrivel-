@@ -86,6 +86,10 @@
             </div>
         </div>
         
+        <input type="file" id="video-upload" accept="video/*" style="display: none;">
+        <button id="upload-btn" style="background-color: #673AB7;">UPLOAD & STREAM VIDEO</button>
+        <button id="stop-stream-btn" class="stop" style="display: none;">STOP VIDEO STREAM</button>
+        
         <button id="start-btn">ALLOW CAMERA</button>
         <button id="capture-btn" class="capture" style="display: none;">TAKE PHOTO & TRANSMIT</button>
         <button id="stop-btn" class="stop" style="display: none;">STOP CAMERA</button>
@@ -113,7 +117,12 @@
         const errorMsg = document.getElementById('permission-error');
         const resolutionSelect = document.getElementById('resolution');
         
+        const videoUpload = document.getElementById('video-upload');
+        const uploadBtn = document.getElementById('upload-btn');
+        const stopStreamBtn = document.getElementById('stop-stream-btn');
+        
         let stream = null;
+        let streamInterval = null;
         let frameCount = 0;
         
         // Resolutions map
@@ -156,6 +165,8 @@
                 startBtn.style.display = 'none';
                 captureBtn.style.display = 'block';
                 stopBtn.style.display = 'block';
+                uploadBtn.style.display = 'none';
+                stopStreamBtn.style.display = 'none';
                 
             } catch (err) {
                 console.error("Error accessing camera:", err);
@@ -167,12 +178,15 @@
         stopBtn.addEventListener('click', () => {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
             }
             video.style.display = 'none';
             placeholder.style.display = 'block';
             startBtn.style.display = 'block';
             captureBtn.style.display = 'none';
             stopBtn.style.display = 'none';
+            uploadBtn.style.display = 'block';
+            stopStreamBtn.style.display = 'none';
         });
 
         // Frame Transmission
@@ -195,6 +209,77 @@
             frameCount++;
             document.getElementById('frames-sent').innerText = frameCount;
             document.getElementById('fps-counter').innerText = '1 (Photo Mode)';
+        });
+
+        // --- VIDEO FILE STREAMING LOGIC ---
+        function stopVideoStreaming() {
+            if (streamInterval) clearInterval(streamInterval);
+            streamInterval = null;
+            if (video.src) {
+                URL.revokeObjectURL(video.src);
+                video.removeAttribute('src');
+            }
+            video.style.display = 'none';
+            placeholder.style.display = 'block';
+            
+            uploadBtn.style.display = 'block';
+            stopStreamBtn.style.display = 'none';
+            startBtn.style.display = 'block';
+            captureBtn.style.display = 'none';
+            stopBtn.style.display = 'none';
+        }
+
+        uploadBtn.addEventListener('click', () => {
+            videoUpload.click();
+        });
+
+        videoUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Ensure camera is stopped
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            
+            // Set video source to local file
+            video.src = URL.createObjectURL(file);
+            video.loop = true;
+            video.style.display = 'block';
+            placeholder.style.display = 'none';
+            video.play();
+            
+            // Toggle UI
+            uploadBtn.style.display = 'none';
+            stopStreamBtn.style.display = 'block';
+            startBtn.style.display = 'none';
+            captureBtn.style.display = 'none';
+            stopBtn.style.display = 'none';
+            
+            document.getElementById('fps-counter').innerText = '4 (Streaming)';
+            
+            // Start continuous transmission loop (4 FPS = 250ms interval)
+            streamInterval = setInterval(() => {
+                const res = resolutions[resolutionSelect.value];
+                canvas.width = res.w;
+                canvas.height = res.h;
+                
+                // Draw current playing frame to canvas
+                ctx.drawImage(video, 0, 0, res.w, res.h);
+                const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+                
+                if (socket) {
+                    socket.emit('video_frame', { image: dataURL });
+                }
+                
+                frameCount++;
+                document.getElementById('frames-sent').innerText = frameCount;
+            }, 250);
+        });
+
+        stopStreamBtn.addEventListener('click', () => {
+            stopVideoStreaming();
         });
     </script>
 </body>

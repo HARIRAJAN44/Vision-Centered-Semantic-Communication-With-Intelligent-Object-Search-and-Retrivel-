@@ -158,7 +158,10 @@
     </div>
     
     <div class="panel">
-        <div class="panel-title">Transmission Log</div>
+        <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+            Transmission Log
+            <button id="clear-logs-btn" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Clear Logs & Downloads</button>
+        </div>
         <div class="log-container" id="log-box"></div>
     </div>
 </div>
@@ -195,9 +198,20 @@
         logBox.scrollTop = logBox.scrollHeight;
     }
     
+    document.getElementById('clear-logs-btn').addEventListener('click', () => {
+        if (socket) {
+            socket.emit('clear_logs');
+        }
+    });
+    
     if (socket) {
         socket.on('connect', () => {
             logMessage('Receiver connected to base station server.');
+        });
+        
+        socket.on('logs_cleared', () => {
+            logBox.innerHTML = '';
+            logMessage('All logs and temporary downloads have been deleted from the server.');
         });
     }
     

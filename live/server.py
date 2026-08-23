@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import base64
 from io import BytesIO
 from flask import Flask, render_template, request
@@ -66,6 +67,23 @@ def handle_config_update(data):
     config_state.update(data)
     # Broadcast the new configuration to all connected clients (so transmitter updates UI)
     socketio.emit('config_updated', config_state, broadcast=True)
+
+@socketio.on('clear_logs')
+def handle_clear_logs():
+    # Delete contents of downloads folder
+    downloads_dir = os.path.join(app.static_folder, 'downloads')
+    if os.path.exists(downloads_dir):
+        for item in os.listdir(downloads_dir):
+            item_path = os.path.join(downloads_dir, item)
+            try:
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                else:
+                    os.remove(item_path)
+            except Exception as e:
+                print(f"Error deleting {item_path}: {e}")
+    # Tell clients to clear their UI logs
+    emit('logs_cleared', broadcast=True)
 
 @socketio.on('video_frame')
 def handle_video_frame(data):
