@@ -3,281 +3,961 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wireless Surveillance - Receiver</title>
-    <!-- Include Socket.IO client -->
-    <script src="/static/socket.io.min.js"></script>
+    <title>Wireless Vision-Centered Semantic Communication - Receiver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; }
         
-        /* Header */
-        .header { grid-column: 1 / -1; text-align: center; background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d; }
-        h1 { margin: 0; color: #58a6ff; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
-        .subtitle { color: #8b949e; margin-top: 5px; font-size: 14px; }
+        .container { max-width: 1600px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
         
-        /* Panel */
-        .panel { background: #161b22; border-radius: 12px; border: 1px solid #30363d; padding: 20px; }
-        .panel-title { font-size: 14px; text-transform: uppercase; color: #8b949e; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        .panel { 
+            background: #161b22; 
+            border-radius: 12px; 
+            border: 1px solid #30363d; 
+            overflow: hidden;
+        }
         
-        /* Controls */
-        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .panel-title { 
+            font-size: 14px; 
+            text-transform: uppercase; 
+            color: #8b949e; 
+            font-weight: bold; 
+            padding: 15px 20px; 
+            background: #0d1117;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .controls-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            padding: 20px; 
+        }
+        
         .control-item { display: flex; flex-direction: column; }
-        label { font-size: 12px; color: #8b949e; margin-bottom: 5px; text-transform: uppercase; }
-        select, input[type="range"] { background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; padding: 8px; border-radius: 6px; }
+        .control-item.full-width { grid-column: 1 / -1; }
         
-        /* Buttons Group */
-        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
-        .btn { flex: 1; padding: 10px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: bold; }
-        .btn.active { background: #238636; border-color: #2ea043; color: #fff; }
+        label { font-size: 12px; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        /* Video Container */
-        .video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        .video-container img { width: 100%; height: 100%; object-fit: contain; }
-        .watermark { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #2ea043; }
-        .watermark.offline { color: #f85149; }
+        select, input[type="range"], input[type="number"], input[type="text"], input[type="number"] { 
+            background: #0d1117; 
+            color: #c9d1d9; 
+            border: 1px solid #30363d; 
+            padding: 8px 10px; 
+            border-radius: 6px; 
+            font-size: 13px;
+            width: 100%;
+        }
         
-        /* Logs */
-        .log-container { font-family: 'Courier New', Courier, monospace; font-size: 12px; height: 350px; overflow-y: auto; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; }
-        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #161b22; padding-bottom: 4px; }
-        .log-time { color: #8b949e; margin-right: 8px; }
+        select:focus, input:focus { outline: none; border-color: #58a6ff; }
         
-        /* Stats Grid */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
-        .stat-box { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; text-align: center; }
-        .stat-val { font-size: 18px; font-weight: bold; color: #58a6ff; margin: 5px 0; }
-        .stat-label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
+        /* Buttons */
+        .btn-group { display: flex; gap: 8px; }
+        .btn-secondary { 
+            padding: 8px 16px; 
+            background: #21262d; 
+            border: 1px solid #30363d; 
+            color: #c9d1d9; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: #30363d; }
+        .btn-secondary.active { background: #1f6feb; border-color: #388bfd; color: #fff; }
+        .btn-pill {
+            padding: 6px 12px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .btn-pill:hover { color: #c9d1d9; border-color: #484f58; }
+        .btn-pill.active { background: #1f6feb; border-color: #388bfd; color: #fff; }
+        .btn-success {
+            padding: 10px 20px;
+            background: #2ec856;
+            border: 1px solid #2ec856;
+            color: #000;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-success:hover { filter: brightness(1.1); }
+        .btn-success.pulse { animation: pulse 2s; }
         
-        /* Slider wrapper */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(46, 200, 86, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(46, 200, 86, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 200, 86, 0); }
+        }
+        
         .slider-wrapper { display: flex; align-items: center; gap: 10px; }
-        .slider-wrapper span { font-family: monospace; font-size: 14px; width: 60px; text-align: right; }
+        .slider-wrapper span { font-family: 'Courier New', monospace; font-size: 13px; width: 60px; text-align: right; color: #8b949e; }
         
+        .num-input { width: 100px; }
+        
+        .toggle-row { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            padding: 8px 0; 
+        }
+        .toggle-row label { display: flex; align-items: center; gap: 5px; margin: 0; cursor: pointer; font-weight: 500; }
+        .toggle-switch {
+            width: 40px;
+            height: 22px;
+            background: #21262d;
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle-switch.on { background: #2ec856; }
+        .toggle-switch::after {
+            content: '';
+            width: 18px;
+            height: 18px;
+            background: #c9d1d9;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .toggle-switch.on::after { transform: translateX(18px); background: #000; }
+        
+        /* Video */
+        .video-container { 
+            position: relative; 
+            height: 400px; 
+            background: #000; 
+            border: 1px solid #30363d; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-direction: column;
+        }
+        .video-container img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain;
+            background: #000;
+        }
+        
+        .watermark { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            background: rgba(0,0,0,0.7); 
+            padding: 5px 12px; 
+            border-radius: 4px; 
+            font-family: 'Courier New', monospace; 
+            font-size: 12px; 
+            color: #2ec856;
+            border: 1px solid #1f6feb;
+        }
+        .watermark.waiting { color: #8b949e; border-color: #30363d; }
+        .watermark.live { color: #2ec856; }
+        
+        .watermark.error { color: #f85149; }
+        
+        /* Stats */
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 10px; 
+            padding: 15px 20px;
+        }
+        .stat-box { 
+            background: #0d1117; 
+            border: 1px solid #30363d; 
+            border-radius: 6px; 
+            padding: 10px 5px; 
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .stat-box:hover { border-color: #484f58; }
+        .stat-val { font-size: 20px; font-weight: 700; color: #58a6ff; }
+        .stat-val.green { color: #2ec856; }
+        .stat-val.red { color: #f85149; }
+        .stat-val.yellow { color: #d29922; }
+        .stat-label { font-size: 10px; color: #8b949e; text-transform: uppercase; margin-top: 3px; }
+        
+        /* Log */
+        .log-container { 
+            height: 250px; 
+            overflow-y: auto; 
+            background: #0d1117; 
+            border: 1px solid #30363d; 
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        .log-entry { margin-bottom: 2px; }
+        .log-time { color: #8b949e; margin-right: 6px; }
+        .log-time.success { color: #2ec856; }
+        .log-time.error { color: #f85149; }
+        
+        .log-entry.detection { 
+            padding: 2px 6px; 
+            border-left: 2px solid #1f6feb; 
+            background: rgba(31,106,243,0.08); 
+        }
+        .log-entry.task {
+            padding: 2px 6px; 
+            border-left: 2px solid #c584fb; 
+            background: rgba(197,132,251,0.08); 
+        }
+        
+        /* Retrieval */
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 13px;
+        }
+        .search-bar button {
+            padding: 8px 16px;
+            background: #1f6feb;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .search-bar button:hover { background: #388bfd; }
+        
+        .retrieval-result {
+            display: flex;
+            gap: 12px;
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        .retrieval-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 4px;
+            background: #0d1117;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 1px solid #30363d;
+        }
+        .retrieval-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .retrieval-info { flex: 1; }
+        .retrieval-info strong { color: #8b949e; }
+        .retrieval-info span { background: #21262d; color: #c9d1d9; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        
+        .retrieval-empty {
+            text-align: center;
+            padding: 40px;
+            color: #8b949e;
+        }
+        
+        /* Detection viz */
+        .det-viz {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 6px;
+            min-width: 300px;
+            max-width: 400px;
+            font-size: 11px;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        /* Section headers */
+        .section-header {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #484f58;
+            letter-spacing: 1px;
+            margin: 15px 20px 8px;
+        }
+        
+        @media (max-width: 1200px) {
+            .container { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+        
+        .loading-spinner {
+            border: 3px solid #21262d;
+            border-top: 3px solid #388bfd;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <h1>Wireless Vision-Centered Semantic Communication</h1>
-        <div class="subtitle">Real-Time Wireless Surveillance Receiver Dashboard</div>
+    <!-- Header -->
+    <div class="panel" style="display: flex; align-items: center; justify-content: space-between; padding: 20px; border: none;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="width: 40px; height: 40px; background: #1f6feb; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;">📡</div>
+            <div>
+                <h1 style="font-size: 18px; font-weight: 700; color: #58a6ff; letter-spacing: 1px; text-transform: uppercase;">VCSC</h1>
+                <div style="font-size: 12px; color: #8b949e;">Vision-Centered Semantic Communication</div>
+            </div>
+        </div>
+        <div style="font-size: 11px; color: #8b949e;">Real-time <span id="status-indicator">● WAITING</span></div>
     </div>
     
-    <div class="panel">
-        <div class="panel-title">Configuration</div>
+    <!-- Left: Configuration + Video + Stats -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
         
-        <div class="btn-group">
-            <button class="btn active" id="btn-vcsc" onclick="setMethod('vcsc')">VCSC</button>
-            <button class="btn" id="btn-jpeg" onclick="setMethod('jpeg')">JPEG</button>
-            <button class="btn" id="btn-huffman" onclick="setMethod('huffman')">HUFFMAN</button>
-        </div>
-        <div class="btn-group">
-            <button class="btn active" id="btn-awgn" onclick="setChannel('awgn')">AWGN</button>
-            <button class="btn" id="btn-rayleigh" onclick="setChannel('rayleigh')">RAYLEIGH</button>
+        <!-- Left Panel: Controls -->
+        <div class="panel" style="display: flex; flex-direction: column;">
+            <div class="panel-title" style="flex: none;">
+                Configuration
+                <span style="color: #484f58; font-size: 11px;">
+                    Quantization: <strong style="color: #58a6ff;">8-bit Uniform</strong>
+                </span>
+            </div>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <label>Transmission Method</label>
+                    <select id="method-select" onchange="setMethod()">
+                        <option value="vcsc" selected>VCSC (Neural)</option>
+                        <option value="jpeg">JPEG Baseline</option>
+                        <option value="huffman">Huffman</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <label>Quantization Mode</label>
+                    <select id="quant-select" onchange="sendConfig()">
+                        <option value="8bit">8-bit Uniform</option>
+                        <option value="4bit-attn">4-bit Attention</option>
+                        <option value="2bit">2-bit Uniform</option>
+                        <option value="4bit">4-bit Uniform</option>
+                        <option value="6bit">6-bit Uniform</option>
+                        <option value="adaptive-multi">Adaptive Multi-Level (2/4/6/8-bit)</option>
+                        <option value="task_aware">Task-Aware Allocation</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <label>Task Profile</label>
+                    <select id="task-select" onchange="sendConfig()">
+                        <option value="object_identification">Object Identification</option>
+                        <option value="object_retrieval">Object Retrieval</option>
+                        <option value="scene_understanding">Scene Understanding</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <label>Attention Threshold (T)</label>
+                    <select id="threshold-select" onchange="sendConfig()">
+                        <option value="0.2">0.2 (Aggressive)</option>
+                        <option value="0.4">0.4 (Conservative)</option>
+                    </select>
+                </div>
+                
+                <div class="control-item" style="justify-content: center;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                        <input type="checkbox" id="turbo-check" checked onchange="sendConfig()">
+                        <span>Use Turbo Coding</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="section-header" style="grid-column: 1 / -1;">Physical Channel</div>
+            <div class="controls-grid">
+                <div class="control-item full-width">
+                    <label>Channel Noise (SNR)</label>
+                    <div class="slider-wrapper">
+                        <input type="range" id="snr" min="0" max="35" step="0.5" value="10" style="flex: 1;" onchange="sendConfig()">
+                        <span id="snr-val">10.0 dB</span>
+                    </div>
+                </div>
+                <div class="control-item full-width">
+                    <label>Simulated Bandwidth</label>
+                    <div class="slider-wrapper">
+                        <input type="range" id="bandwidth" min="0.1" max="20" step="0.1" value="5.0" style="flex: 1;" onchange="sendConfig()">
+                        <span id="bw-val">5.0 MHz</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-header" style="margin-left: 20px;">Advanced Options</div>
+            <div class="controls-grid">
+                <div class="control-item" style="margin-bottom: 5px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; font-weight: 500;">
+                        <input type="checkbox" id="detect-check" onchange="sendConfig()">
+                        <span>Enable Object Detection</span>
+                    </label>
+                </div>
+                <div class="control-item" style="margin-bottom: 5px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; font-weight: 500;">
+                        <input type="checkbox" id="retrieval-check" onchange="sendConfig()">
+                        <span>Enable Retrieval</span>
+                    </label>
+                </div>
+            </div>
         </div>
         
-        <div class="controls-grid">
-            <div class="control-item">
-                <label>VCSC Quantization</label>
-                <select id="quantization" onchange="sendConfig()">
-                    <option value="8bit">8-bit Uniform</option>
-                    <option value="4bit-attn">4-bit Attention</option>
-                    <option value="adaptive-multi">Adaptive Multi-Level (2/4/6/8-bit)</option>
-                    <option value="4bit">4-bit Uniform</option>
-                    <option value="2bit">2-bit Uniform</option>
-                </select>
+        <!-- Middle: Live Video -->
+        <div class="panel" style="min-height: 400px; flex: 1;">
+            <div class="panel-title">
+                Live Feed
+                <span id="frame-count" style="color: #8b949e; font-size: 11px;">Frames: 0</span>
             </div>
-            <div class="control-item">
-                <label>Attention Threshold</label>
-                <select id="threshold" onchange="sendConfig()">
-                    <option value="0.2">T = 0.2</option>
-                    <option value="0.4">T = 0.4</option>
-                </select>
-            </div>
-            <div class="control-item" style="justify-content: center;">
-                <label><input type="checkbox" id="turbo" checked onchange="sendConfig()"> Use Turbo Coding</label>
+            <div class="video-container">
+                <div class="watermark waiting" id="watermark">
+                    camera input: <span id="input-status">● WAITING</span>
+                </div>
+                <img id="received-video" style="display: none; max-width: 100%; max-height: 100%;">
+                <div id="detection-viz"></div>
             </div>
         </div>
         
-        <div class="control-item" style="margin-bottom: 15px;">
-            <label>Physical Channel Noise (SNR)</label>
-            <div class="slider-wrapper">
-                <input type="range" id="snr" min="0" max="35" step="1" value="10" style="flex: 1" onchange="sendConfig()">
-                <span id="snr-val">10 dB</span>
+        <!-- Right: Stats + Metrics -->
+        <div class="panel">
+            <div class="panel-title">Quality Metrics</div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-val" id="val-ssim">-</div>
+                    <div class="stat-label">SSIM</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-psnr">-</div>
+                    <div class="stat-label">PSNR</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-clip">-</div>
+                    <div class="stat-label">CLIP Sim</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-lpips">-</div>
+                    <div class="stat-label">LPIPS</div>
+                </div>
             </div>
-        </div>
-        
-        <div class="control-item">
-            <label>Simulated Bandwidth</label>
-            <div class="slider-wrapper">
-                <input type="range" id="bandwidth" min="0.1" max="20" step="0.1" value="5.0" style="flex: 1" onchange="sendConfig()">
-                <span id="bw-val">5.0 MHz</span>
+            
+            <div class="section-header" style="margin-top: 15px;">Payload Analysis</div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-val" id="val-comp">-</div>
+                    <div class="stat-label">Compression</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-payload">-</div>
+                    <div class="stat-label">Payload Size</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-txdelay">-</div>
+                    <div class="stat-label">Tx Delay (ms)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-proctime">-</div>
+                    <div class="stat-label">Process Time</div>
+                </div>
+            </div>
+            
+            <div class="section-header" style="margin-top: 15px;">Allocation Stats</div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-val" id="val-idealbits">-</div>
+                    <div class="stat-label">Ideal Bits</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-overhead">-</div>
+                    <div class="stat-label">Overhead</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-payload-bits">-</div>
+                    <div class="stat-label">Total Tx (bits)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="val-cr">-</div>
+                    <div class="stat-label">Compression R</div>
+                </div>
             </div>
         </div>
         
     </div>
     
-    <div class="panel">
-        <div class="panel-title">Live Received Video</div>
-        <div class="video-container">
-            <div class="watermark offline" id="watermark">● WAITING FOR TRANSMITTER...</div>
-            <img id="received-video" style="display: none;">
+    <!-- Right Panel: Two columns: Logs and Retrieval -->
+    <div class="grid-2" style="margin-top: 20px;">
+        
+        <!-- Logs -->
+        <div class="panel">
+            <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+                Transmission Log
+                <button id="clear-logs-btn" class="btn-secondary" onclick="clearLogs()" style="font-size: 11px;">Clear</button>
+                <button id="fetch-classes" class="btn-success" style="font-size: 11px; padding: 6px 12px; display: none;">📚 Load Classes</button>
+            </div>
+            <div class="log-container" id="log-box">
+                <div class="loading-spinner" id="log-spinner"></div>
+            </div>
         </div>
         
-        <div class="stats-grid">
-            <div class="stat-box">
-                <div class="stat-label">SSIM</div>
-                <div class="stat-val" id="val-ssim">-</div>
+        <!-- Retrieval -->
+        <div class="panel">
+            <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+                Object Retrieval
+                <span id="retrieval-count" style="color: #8b949e; font-size: 11px;">0 results</span>
             </div>
-            <div class="stat-box">
-                <div class="stat-label">PSNR</div>
-                <div class="stat-val" id="val-psnr">-</div>
+            
+            <!-- Task config -->
+            <div style="padding: 15px; background: #0d1117; border-bottom: 1px solid #30363d;">
+                <label style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">Search Query</label>
+                <div class="search-bar">
+                    <input type="text" id="search-query" placeholder="e.g. 'person walking'" onkeyup="preventDefault(event)" onchange="fetchResults()">
+                    <button onclick="fetchResults()">🔍 Search</button>
+                </div>
+                <div style="margin-top: 10px; display: flex; gap: 8px;">
+                    <span style="font-size: 11px; color: #8b949e;">Top K:</span>
+                    <input type="number" id="retrieval-k" value="10" min="1" max="20" style="width: 50px; padding: 4px; border: 1px solid #30363d; border-radius: 4px;">
+                </div>
             </div>
-            <div class="stat-box">
-                <div class="stat-label">CLIP</div>
-                <div class="stat-val" id="val-clip">-</div>
+            
+            <!-- Results -->
+            <div id="retrieval-results" style="display: none;">
+                <div id="retrieval-list"></div>
+                <div id="retrieval-empty" class="retrieval-empty" style="display: none;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
+                    <div>Search and add images to find similar objects</div>
+                </div>
             </div>
-            <div class="stat-box">
-                <div class="stat-label">LPIPS</div>
-                <div class="stat-val" id="val-lpips">-</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Compression</div>
-                <div class="stat-val" id="val-comp">-</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Payload Size</div>
-                <div class="stat-val" id="val-payload">-</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Tx Delay (Sim)</div>
-                <div class="stat-val" id="val-txdelay">-</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Processing</div>
-                <div class="stat-val" id="val-proctime">-</div>
+            
+            <!-- No retrieval -->
+            <div id="retrieval-disabled">
+                <div class="retrieval-empty">
+                    <div style="font-size: 48px; margin-bottom: 10px;">💾</div>
+                    <div>Enable Retrieval to search stored objects</div>
+                </div>
+                <div style="padding: 12px; background: #0d1117; color: #8b949e; font-size: 11px;">
+                    Retrieval is disabled. Toggle "Enable Retrieval" in the configuration panel.
+                </div>
             </div>
         </div>
-    </div>
-    
-    <div class="panel">
-        <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
-            Transmission Log
-            <button id="clear-logs-btn" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Clear Logs & Downloads</button>
-        </div>
-        <div class="log-container" id="log-box"></div>
+        
     </div>
 </div>
 
 <script>
     let currentMethod = 'vcsc';
-    let currentChannel = 'awgn';
+    let frameCount = 0;
     
     let socket;
     try {
         socket = io();
     } catch(e) {
-        console.error("Socket.IO not loaded. Ensure static files are accessible.");
+        console.error("Socket.IO not loaded.", e);
     }
     
     const logBox = document.getElementById('log-box');
     const watermark = document.getElementById('watermark');
     const receivedImg = document.getElementById('received-video');
+    const frameCountEl = document.getElementById('frame-count');
+    let config = {
+        method: currentMethod,
+        channel: 'awgn',
+        quantization: '8bit',
+        threshold: '0.2',
+        turbo: true,
+        snr: 10,
+        bandwidth: 5,
+        task_type: 'object_identification',
+        enable_detection: false,
+        enable_retrieval: false
+    };
+
+    // Prevent Enter key in search
+    function preventDefault(event) {
+        if (event.key === 'Enter' && event.target.id !== 'search-query') {
+            event.preventDefault();
+        }
+    }
+
+    function logMessage(msg, type = 'info') {
+        const time = new Date().toLocaleTimeString('en-US', {hour12: false, fractionalSecondDigits: 3});
+        const div = document.createElement('div');
+        div.className = 'log-entry ' + type;
+        div.innerHTML = `<span class="log-time ${type}">${time}</span> ${msg}`;
+        logBox.appendChild(div);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    document.getElementById('clear-logs-btn').addEventListener('click', () => {
+        if (socket) {
+            socket.emit('clear_logs');
+        }
+    });
+
+    document.getElementById('detect-check').addEventListener('change', () => {
+        if (socket) {
+            socket.emit('update_config', config);
+        }
+    });
     
-    // Sliders UI update
+    document.getElementById('retrieval-check').addEventListener('change', () => {
+        if (socket) {
+            socket.emit('update_config', config);
+        }
+    });
+
     document.getElementById('snr').addEventListener('input', function() {
         document.getElementById('snr-val').innerText = this.value + ' dB';
     });
     document.getElementById('bandwidth').addEventListener('input', function() {
         document.getElementById('bw-val').innerText = parseFloat(this.value).toFixed(1) + ' MHz';
     });
-    
-    function logMessage(msg) {
-        const time = new Date().toLocaleTimeString('en-US', {hour12: false, fractionalSecondDigits: 3});
-        const div = document.createElement('div');
-        div.className = 'log-entry';
-        div.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
-        logBox.appendChild(div);
-        logBox.scrollTop = logBox.scrollHeight;
-    }
-    
-    document.getElementById('clear-logs-btn').addEventListener('click', () => {
-        if (socket) {
-            socket.emit('clear_logs');
-        }
-    });
-    
-    if (socket) {
-        socket.on('connect', () => {
-            logMessage('Receiver connected to base station server.');
-        });
-        
-        socket.on('logs_cleared', () => {
-            logBox.innerHTML = '';
-            logMessage('All logs and temporary downloads have been deleted from the server.');
-        });
-    }
-    
-    function setMethod(method) {
-        currentMethod = method;
-        document.querySelectorAll('#btn-vcsc, #btn-jpeg, #btn-huffman').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn-' + method).classList.add('active');
-        sendConfig();
-    }
-    
-    function setChannel(ch) {
-        currentChannel = ch;
-        document.querySelectorAll('#btn-awgn, #btn-rayleigh').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn-' + ch).classList.add('active');
-        sendConfig();
-    }
-    
-    function sendConfig() {
-        const config = {
-            method: currentMethod,
-            channel: currentChannel,
-            quantization: document.getElementById('quantization').value,
-            threshold: document.getElementById('threshold').value,
-            turbo: document.getElementById('turbo').checked,
-            snr: document.getElementById('snr').value,
-            bandwidth: document.getElementById('bandwidth').value
-        };
+
+    function setMethod() {
+        currentMethod = document.getElementById('method-select').value;
+        config.method = currentMethod;
+        updateActiveButtons();
         if (socket) {
             socket.emit('update_config', config);
+            logMessage(`Switched to ${currentMethod.toUpperCase()}`);
         }
-        logMessage(`Configuration updated: ${currentMethod.toUpperCase()} | ${currentChannel.toUpperCase()} | SNR: ${config.snr}dB`);
+    }
+
+    function updateActiveButtons() {
+        document.querySelectorAll('#method-select option').forEach(o => {
+            if (o.value === currentMethod) {
+                o.style.background = '#1f6feb';
+                o.style.color = '#fff';
+            } else {
+                o.style.background = '';
+            }
+        });
+    }
+
+    function sendConfig() {
+        // Read values
+        const method = document.getElementById('method-select').value;
+        const quant = document.getElementById('quant-select').value;
+        const snr = document.getElementById('snr').value;
+        const bw = document.getElementById('bandwidth').value;
+        const turbo = document.getElementById('turbo-check').checked;
+        
+        const detectCheckbox = document.getElementById('detect-check');
+        const detectEnabled = detectCheckbox ? detectCheckbox.checked : false;
+        const retCheckbox = document.getElementById('retrieval-check');
+        const retEnabled = retCheckbox ? retCheckbox.checked : false;
+        
+        config.method = method;
+        config.quantization = quant;
+        config.snr = snr;
+        config.bandwidth = bw;
+        config.turbo = turbo;
+        config.enable_detection = detectEnabled;
+        config.enable_retrieval = retEnabled;
+        
+        if (socket) {
+            socket.emit('update_config', config);
+            logMessage(`Config: ${method} | ${quant} | SNR=${snr}dB | BW=${bw}MHz | turbo=${turbo} | detect=${detectEnabled} | ret=${retEnabled}`);
+        }
     }
 
     if (socket) {
+        socket.on('connect', () => {
+            watermark.innerHTML = '● Connected';
+            watermark.className = 'watermark live';
+            document.getElementById('input-status').innerText = 'LIVE';
+            logMessage('Received connected to base station', 'success');
+            showConfig();
+        });
+
+        socket.on('logs_cleared', () => {
+            logBox.innerHTML = '';
+            logMessage('All logs and temporary downloads have been deleted from the server.', 'success');
+        });
+
+        socket.on('config_updated', (config_data) => {
+            // Update UI
+            document.getElementById('config-display').innerText = 
+                `Config: ${config_data.method} | ${config_data.quantization} | SNR=${config_data.snr}dB`;
+            
+            if (config_data.quantization === 'task_aware' || config_data.quantization.startsWith('adaptive')) {
+                logMessage('Task-aware allocation enabled', 'task');
+            }
+            
+            if (config_data.enable_detection) {
+                logMessage('Object detection enabled');
+            }
+            
+            if (config_data.enable_retrieval) {
+                logMessage('Retrieval enabled', 'success');
+                document.getElementById('retrieval-disabled').style.display = 'none';
+                document.getElementById('retrieval-results').style.display = 'block';
+            } else {
+                logMessage('Retrieval disabled');
+                document.getElementById('retrieval-disabled').style.display = 'block';
+                document.getElementById('retrieval-results').style.display = 'none';
+            }
+            
+            showConfig();
+        });
+
         socket.on('reconstructed_frame', (data) => {
-            // Update Video
-            watermark.innerText = '● LIVE FEED';
-            watermark.classList.remove('offline');
+            watermark.innerHTML = '● LIVE';
+            watermark.className = 'watermark live';
             receivedImg.style.display = 'block';
             receivedImg.src = 'data:image/jpeg;base64,' + data.reconstructed;
             
+            // Frame count
+            frameCount++;
+            frameCountEl.innerText = 'Frames: ' + frameCount;
+            
             // Update Stats
             const m = data.metrics;
-            const s = data.stats;
+            const s = data.stats || {};
             
-            document.getElementById('val-ssim').innerText = m.ssim ? m.ssim.toFixed(3) : '-';
-            document.getElementById('val-psnr').innerText = m.psnr ? m.psnr.toFixed(2) : '-';
-            document.getElementById('val-clip').innerText = m.clip_similarity ? m.clip_similarity.toFixed(3) : '-';
-            document.getElementById('val-lpips').innerText = m.lpips ? m.lpips.toFixed(3) : '-';
+            updateStat('val-ssim', m.ssim, m.ssim && m.ssim < 0.5 ? 'red' : 'green');
+            updateStat('val-psnr', m.psnr, m.psnr && m.psnr < 20 ? 'yellow' : 'green');
+            updateStat('val-clip', m.clip_similarity, m.clip_similarity && m.clip_similarity < 0.7 ? 'yellow' : 'green');
+            updateStat('val-lpips', m.lpips, m.lpips && m.lpips > 0.5 ? 'yellow' : 'green');
             
-            document.getElementById('val-comp').innerText = s.compression_rate ? s.compression_rate.toFixed(2) + '%' : '-';
+            document.getElementById('val-comp').innerText = s.compression_rate ? s.compression_rate.toFixed(1) + '%' : '-';
             document.getElementById('val-payload').innerText = s.comp_bits ? (s.comp_bits / 8000).toFixed(1) + ' KB' : '-';
             document.getElementById('val-txdelay').innerText = s.transmission_time_ms ? s.transmission_time_ms.toFixed(1) + ' ms' : '-';
             document.getElementById('val-proctime').innerText = ((s.enc_time + s.dec_time) * 1000).toFixed(0) + ' ms';
             
-            // Add visual separator for new transmission
+            // Allocation stats
+            if (data.stats && data.stats.payload_info) {
+                const p = data.stats.payload_info;
+                document.getElementById('val-idealbits').innerText = p.ideal_bits ? p.ideal_bits.toLocaleString() : '-';
+                document.getElementById('val-overhead').innerText = p.allocation_overhead_bits ? p.allocation_overhead_bits.toLocaleString() : '-';
+                document.getElementById('val-payload-bits').innerText = p.total_transmitted_bits ? p.total_transmitted_bits.toLocaleString() : '-';
+                document.getElementById('val-cr').innerText = p.compression_ratio_vs_8bit ? (p.compression_ratio_vs_8bit * 100).toFixed(1) + 'x' : '-';
+            } else {
+                document.getElementById('val-idealbits').innerText = '-';
+                document.getElementById('val-overhead').innerText = '-';
+                document.getElementById('val-payload-bits').innerText = '-';
+                document.getElementById('val-cr').innerText = '-';
+            }
+            
+            updateStat('val-idealbits', document.getElementById('val-idealbits').innerText);
+            updateStat('val-overhead', document.getElementById('val-overhead').innerText);
+            updateStat('val-payload-bits', document.getElementById('val-payload-bits').innerText);
+            updateStat('val-cr', document.getElementById('val-cr').innerText);
+            
+            // Add visual separator
             const sep = document.createElement('hr');
             sep.style.borderColor = '#30363d';
-            sep.style.margin = '10px 0';
+            sep.style.margin = '8px 0';
             logBox.appendChild(sep);
             
             // Add Logs
-            data.logs.forEach(msg => logMessage(msg));
+            addLogHTML(data.logs);
+            
+            // Add detection viz
+            if (data.detections) {
+                renderDetectionViz(data.detections);
+            }
+            
+            // Add task evaluation
+            if (data.task_eval) {
+                logMessage(`[Task: ${data.task_eval.task_name}] SSIM=${data.task_eval.ssim.toFixed(3)}, CLIP=${data.task_eval.clip_similarity.toFixed(3)}`, 'task');
+                if (data.task_eval.detection_precision) {
+                    logMessage(`  → Det P=${data.task_eval.detection_precision.toFixed(3)} R=${data.task_eval.detection_recall.toFixed(3)} mAP=${data.task_eval.detection_map.toFixed(3)}`, 'task');
+                }
+                if (data.task_eval.retrieval_precision_at_k) {
+                    logMessage(`  → Ret P@K: ${JSON.stringify(data.task_eval.retrieval_precision_at_k)}`, 'task');
+                }
+                if (data.task_eval.detection_precision || data.task_eval.retrieval_precision_at_k) {
+                    logMessage(`  ✓ Task metrics available for ${data.task_eval.task_type}`, 'success');
+                }
+            }
+            
+            // Add retrieval results
+            if (data.retrieval_results) {
+                document.getElementById('retrieval-results').style.display = 'block';
+                document.getElementById('retrieval-empty').style.display = 'none';
+                document.getElementById('retrieval-count').innerText = data.retrieval_results.length + ' results';
+                renderRetrievalResults(data.retrieval_results);
+            }
         });
     }
+
+    function updateStat(id, value, colorClass = '') {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.innerText !== value) {
+            el.innerText = value;
+            if (colorClass) el.classList.add(colorClass);
+            else if (value === '-') { el.classList.remove('green', 'red', 'yellow'); }
+        }
+    }
+
+    function addLogHTML(logs) {
+        logs.forEach(msg => {
+            if (msg.includes('<a')) {
+                // It's HTML link
+                logMessage(msg);
+            } else if (msg.match(/\[Task:/)) {
+                // Task evaluation
+                logMessage(msg, 'task');
+            } else if (msg.match(/^→ /)) {
+                // Sub-log
+                logMessage(msg, 'task');
+            } else if (msg.match(/\d+\s+objects found/)) {
+                // Detection
+                logMessage(msg, 'detection');
+            } else {
+                logMessage(msg);
+            }
+        });
+    }
+
+    function renderDetectionViz(detections) {
+        const detViz = document.getElementById('detection-viz');
+        if (!detViz) return;
+        if (detections.length === 0) {
+            detViz.innerHTML = '';
+            return;
+        }
+        const html = detections.slice(0, 5).map(d =>
+            `<div style="padding:2px 0; border-bottom:1px solid #21262d;">
+                <font face="monospace" size="3">${d.class_name} [${(d.confidence * 100).toFixed(1)}%]</font>
+                <br><small style="color:#484f58">
+                    Latent ROI: (${d.latent_bbox[0]},${d.latent_bbox[1]})-${d.latent_bbox[2]},${d.latent_bbox[3]} | 
+                    <strong>Image:</strong> x=${d.bbox[0].toFixed(0)},y=${d.bbox[1].toFixed(0)},w=${(d.bbox[2]-d.bbox[0]).toFixed(1)},h=${(d.bbox[3]-d.bbox[1]).toFixed(1)}
+                </small>
+            </div>`
+        ).join('');
+        detViz.innerHTML = html;
+    }
+
+    function renderRetrievalResults(results) {
+        const container = document.getElementById('retrieval-list');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        if (results.length === 0) {
+            document.getElementById('retrieval-empty').style.display = 'block';
+            document.getElementById('retrieval-results').style.display = 'block';
+            return;
+        }
+        
+        results.forEach((r, i) => {
+            const div = document.createElement('div');
+            div.className = 'retrieval-result';
+            div.style.display = 'grid';
+            div.style.gridTemplateColumns = '80px 1fr';
+            div.style.gap = '10px';
+            div.style.padding = '10px';
+            div.style.background = 'transparent';
+            
+            const imgUrl = r.record.image_path ? r.record.image_path.replace('static/', '') : '';
+            const thumbImg = imgUrl ? `<img src="/${imgUrl}" onerror="this.style.display='none'" style="border-radius:4px;width:72px;height:72px;object-fit:cover;">` : 
+                `<div style="height:72px;background:#1f6feb;display:flex;align-items:center;justify-content:center;color:#8b949e;font-size:12px;">IMG</div>`;
+            
+            div.innerHTML = `
+                ${thumbImg}
+                <div class="retrieval-info">
+                    <div><strong>${r.record.record_id}</strong></div>
+                    <div>Sim: ${r.similarity.toFixed(3)}</div>
+                    <span style="background:${r.record.source==='vcsc'?'#1f6feb':(r.record.source==='jpeg'?'#f85149':'#8b949e')};color:white;">${r.record.source}</span>
+                    <span style="background:rgba(69,112,158,0.2);color:#8b949e;">${r.record.class_name || 'unknown'}</span>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    async function fetchResults() {
+        const query = document.getElementById('search-query').value.trim();
+        const topK = parseInt(document.getElementById('retrieval-k').value) || 10;
+        
+        if (!query) {
+            document.getElementById('retrieval-list').innerHTML = '<div style="padding:20px;text-align:center;color:#8b949e;">Enter a search query</div>';
+            return;
+        }
+        
+        try {
+            const res = await fetch('/api/retrieval/search', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({query, top_k: topK})
+            });
+            const data = await res.json();
+            
+            renderRetrievalResults(data.results);
+            document.getElementById('retrieval-count').innerText = data.count + ' results';
+            
+            // Highlight stored query
+            logMessage(`Search: "${query}" → ${data.count} results`, 'task');
+        } catch (e) {
+            logMessage(`Search error: ${e.message}`, 'error');
+        }
+    }
+
+    function showConfig() {
+        const disp = document.getElementById('config-display');
+        if (disp) disp.innerText = `Config: ${config.method} | ${config.quantization} | SNR=${config.snr}dB | BW=${config.bandwidth}MHz | turbo=${config.turbo} | detect=${config.enable_detection} | ret=${config.enable_retrieval}`;
+    }
+
+    window.addEventListener('load', () => {
+        // Try to load available classes
+        fetch('/api/detection/classes')
+            .then(r => r.json())
+            .then(data => {
+                if (data.classes && data.classes.length > 0) {
+                    logMessage(`Loaded ${data.classes.length} COCO classes`);
+                    document.getElementById('fetch-classes').style.display = 'block';
+                }
+            })
+            .catch(() => {
+                logMessage('Failed to load detection classes', 'error');
+                document.getElementById('fetch-classes').style.display = 'block';
+            });
+    });
+
+    window.addEventListener('resize', () => {
+        logBox.style.maxHeight = window.innerHeight - 120 + 'px';
+    });
 </script>
+
 </body>
 </html>

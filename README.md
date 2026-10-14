@@ -89,6 +89,8 @@ To clearly demonstrate why VCSC is superior to traditional codecs, follow these 
 
 You can run this entire project on any system (Windows, Mac, Linux) without installing Python dependencies by using Docker.
 
+You can run this entire project on any system (Windows, Mac, Linux) without installing Python dependencies by using Docker.
+
 1. **Build the Docker Image** (Run this once in the project folder):
    ```bash
    docker build -t vcsc-server .
@@ -97,4 +99,84 @@ You can run this entire project on any system (Windows, Mac, Linux) without inst
    ```bash
    docker run -p 5000:5000 vcsc-server
    ```
-3. The server is now running! You can access the receiver at `http://localhost:5000/receiver` and use the same mobile connection methods as above. 
+3. The server is now running! You can access the receiver at `http://localhost:5000/receiver` and use the same mobile connection methods as above.
+
+---
+
+## 📊 Phases 7-10 Implementation Summary
+
+### Phase 7: Task-Aware Priorities and Evaluation
+- Integrated **task-aware priorities** with `AllocationController` and `TaskAwareAllocator` into the VCSC pipeline
+- Added `TaskEvaluator` computing mAP, precision/recall for object detection and P@k for retrieval
+- Task quality assessment (SSIM, CLIP similarity) now injected into pipeline logs and per-frame statistics
+- Task profile selection (Object Identification / Object Retrieval / Scene Understanding) drives bit allocation
+
+### Phase 8: Live Application Integration
+- **`live/server.py`** updated with new REST endpoints:
+  - `/api/retrieval/search` - Text-based retrieval search with top-k results
+  - `/api/retrieval/stats` - Retrieval statistics (database size, embedding dim, etc.)
+  - `/api/retrieval/add` - Add current frame to retrieval store (pending backend completion)
+  - `/api/detection/classes` - Get available COCO classes for task profiles
+  - Dynamic pipeline recreation when detection/retrieval toggles change
+  - Configuration broadcast to all connected clients on update
+- **`live/templates/receiver.html`** updated with full new control panel:
+  - Task profile dropdown (Object Identification / Retrieval / Scene Understanding)
+  - Quantization mode selector (8-bit Uniform, 4-bit Attention, 2/4/6-bit Uniform, Adaptive Multi-Level, Task-Aware)
+  - Object detection enable/disable toggle
+  - Retrieval enable/disable toggle
+  - Channel SNR (0-35 dB) and Bandwidth (0.1-20 MHz) sliders
+  - Live metrics display: SSIM, PSNR, CLIP similarity, LPIPS, compression rate, payload size
+  - Real-time detection visualization panel showing class names and confidence
+  - Retrieval search bar with results display and top-K control
+  - Transmission log with colored entries (detection/task/retrieval status)
+  - `config-display` div for real-time config broadcasting from server
+- **`experiments/run_vcsc.py`** quantization mode normalization:
+  - Maps server config strings (`adaptive-multi`, `task_aware`) to internal code paths
+  - Ensures correct quantizer routing regardless of config string format
+
+### Phase 9: Integration Tests and Experiments
+- **`tests/test_vcsc_pipeline_integration.py`** created with comprehensive test suite:
+  - VCSCPipeline initialization with various configurations (detection, retrieval, task-aware)
+  - Task profile setting and allocation computation across all three task types
+  - Quantization mode testing (8-bit, 4-bit attention, 2-bit, task_aware)
+  - Object detection and latent ROI extraction with visualization
+  - Retrieval engine integration (search engine methods, stats)
+- SNR sweep experiments can be run using `experiments/run_all.py` with real image data
+- Tested quantization modes and allocation under different channel conditions (AWGN, Rayleigh)
+- Verified detection/ROI extraction and retrieval feature hooks
+
+### Phase 10: Documentation and Finalization
+- **`README.md`** updated with phases 7-10 implementation summary
+- All core modules verified importing successfully
+- Integration test suite passes with all core functionality
+- Live receiver UI fully updated with new controls and metric displays
+- Backend API endpoints exposed and wired into live pipeline
+
+---
+
+## 📁 Project Structure Overview
+
+```
+Vision-Centered-Semantic-Communication/
+├── experiments/         # Main pipeline (run_vcsc.py, run_all.py)
+├── live/              # Flask-SocketIO backend + HTML templates
+├── object_detection/   # YOLO-based detector
+├── quantization/       # Uniform, attention, adaptive quantizers
+├── retrieval/          # FAISS-based search engine, feature extractor
+├── semantic/           # VAE encoder/decoder, task-aware modules
+├── baselines/          # JPEG and Huffman compression baselines
+├── tests/              # Unit and integration tests
+�── requirements.txt
+�── README.md
+```
+
+## 📦 Dependencies
+
+Core dependencies (see `requirements.txt`):
+- `torch`, `torchvision`, `numpy`, `Pillow`, `flask`, `flask-socketio`
+- `scikit-image`, `lpips`, `transformers` (for CLIP), `faiss-cpu`
+- `ultralytics` (for YOLO object detection)
+
+## � contact
+
+For questions or contributions, refer to the paper *Wireless Vision-Centered Semantic Communication for Smart City Environment: Pretrained Network and Quantization*. 
