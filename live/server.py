@@ -3,7 +3,11 @@ import sys
 import shutil
 import base64
 from io import BytesIO
+<<<<<<< HEAD
 from flask import Flask, render_template, request
+=======
+from flask import Flask, render_template, request, jsonify, send_from_directory
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
 from flask_socketio import SocketIO, emit
 from PIL import Image
 import time
@@ -18,9 +22,30 @@ from metrics.evaluator import Evaluator
 from baselines.jpeg import JPEGBaseline
 from baselines.huffman import HuffmanBaseline
 
-app = Flask(__name__)
-# Allow CORS for WebSockets, use threading so we can use Werkzeug's adhoc SSL
+app = Flask(__name__, static_folder='static')
+# Allow CORS for WebSockets
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# Serve Socket.IO client library
+@app.route('/socket.io/socket.io.js')
+def socket_io_client():
+    """Serve the Socket.IO client library."""
+    try:
+        import flask_socketio
+        flask_socketio_path = os.path.dirname(flask_socketio.__file__)
+        # Try to find the client library
+        for root, dirs, files in os.walk(flask_socketio_path):
+            if 'socket.io.js' in files:
+                return send_from_directory(root, 'socket.io.js')
+            if 'socket.io.min.js' in files:
+                return send_from_directory(root, 'socket.io.min.js')
+    except:
+        pass
+    # Fallback: serve from static folder if available
+    try:
+        return send_from_directory(app.static_folder, 'js/socket.io.min.js')
+    except:
+        return "// Socket.IO client not found - use CDN", 404
 
 # Global state to ensure transmitter and receiver are synchronized
 config_state = {
@@ -30,14 +55,28 @@ config_state = {
     'snr': 10.0,
     'threshold': 0.2,
     'turbo': True,
+<<<<<<< HEAD
     'bandwidth': 5.0
+=======
+    'bandwidth': 5.0,
+    'enable_detection': False,
+    'detection_conf': 0.25
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
 }
 
 # Concurrency lock to drop frames if the server is busy processing the previous one
 is_processing = False
 
 print("[Server] Initializing Neural Networks. This may take a moment...")
+<<<<<<< HEAD
 vcsc_pipeline = VCSCPipeline(use_turbo=True, channel_type='awgn')
+=======
+vcsc_pipeline = VCSCPipeline(
+    use_turbo=True, 
+    channel_type='awgn',
+    enable_object_detection=False
+)
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
 jpeg_pipeline = JPEGBaseline(quality=80, use_turbo=True, channel_type='awgn')
 huffman_pipeline = HuffmanBaseline(use_turbo=True, channel_type='awgn')
 evaluator = Evaluator(device=vcsc_pipeline.device)
@@ -56,17 +95,63 @@ def index():
     # Redirect root to receiver for convenience
     return render_template('receiver.html')
 
+<<<<<<< HEAD
+=======
+@app.route('/api/detection/classes', methods=['GET'])
+def api_detection_classes():
+    """API endpoint to get available COCO classes."""
+    if vcsc_pipeline.object_detector:
+        classes = vcsc_pipeline.object_detector.COCO_CLASSES
+        return jsonify({'classes': classes})
+    return jsonify({'classes': []})
+
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
 @socketio.on('connect')
 def handle_connect():
+    print("[Server] Client connected, sending config")
     # Send the current configuration to the newly connected client
     emit('config_updated', config_state)
 
 @socketio.on('update_config')
 def handle_config_update(data):
+<<<<<<< HEAD
     global config_state
     config_state.update(data)
     # Broadcast the new configuration to all connected clients (so transmitter updates UI)
     socketio.emit('config_updated', config_state, broadcast=True)
+=======
+    global config_state, vcsc_pipeline
+    old_method = config_state['method']
+    old_detection = config_state.get('enable_detection', False)
+    
+    config_state.update(data)
+    
+    # Log the config changes for debugging
+    print(f"[Server] Config update: method={data.get('method')}, quant={data.get('quantization')}, detect={data.get('enable_detection')}")
+    
+    # Recreate pipeline if object detection toggled
+    if config_state.get('enable_detection', False) != old_detection:
+        print(f"[Server] Recreating pipeline: detection={config_state.get('enable_detection')}")
+        vcsc_pipeline = VCSCPipeline(
+            use_turbo=str(config_state['turbo']).lower() == 'true',
+            channel_type=config_state['channel'],
+            enable_object_detection=config_state.get('enable_detection', False)
+        )
+    
+    # Handle method/quantization changes - reset pipeline
+    new_method = config_state.get('method', old_method)
+    if new_method != old_method:
+        print(f"[Server] Method changed from '{old_method}' to '{new_method}', resetting pipeline")
+        vcsc_pipeline = VCSCPipeline(
+            use_turbo=str(config_state['turbo']).lower() == 'true',
+            channel_type=config_state['channel'],
+            enable_object_detection=config_state.get('enable_detection', False)
+        )
+    
+    # Broadcast the new configuration to all connected clients
+    socketio.emit('config_updated', config_state)
+    print(f"[Server] config_updated emitted to all clients")
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
 
 @socketio.on('clear_logs')
 def handle_clear_logs():
@@ -83,11 +168,12 @@ def handle_clear_logs():
             except Exception as e:
                 print(f"Error deleting {item_path}: {e}")
     # Tell clients to clear their UI logs
-    emit('logs_cleared', broadcast=True)
+    socketio.emit('logs_cleared')
 
-@socketio.on('video_frame')
-def handle_video_frame(data):
+def process_frame_async(data):
+    """Process a frame in background thread and emit result via socketio."""
     global is_processing
+<<<<<<< HEAD
     
     # If the server is currently processing a frame, drop this incoming frame
     # to maintain real-time low-latency and prevent a massive queue backup.
@@ -95,6 +181,9 @@ def handle_video_frame(data):
         return
         
     is_processing = True
+=======
+    result = None
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
     try:
         # Decode base64 image
         header, encoded = data['image'].split(',', 1)
@@ -112,6 +201,10 @@ def handle_video_frame(data):
         bandwidth_mhz = float(config_state['bandwidth'])
         quantization = config_state['quantization']
         threshold = float(config_state['threshold'])
+<<<<<<< HEAD
+=======
+        enable_detection = config_state.get('enable_detection', False)
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
         
         # Setup intermediate downloads directory
         tx_id = str(int(time.time() * 1000))
@@ -154,7 +247,21 @@ def handle_video_frame(data):
             # VCSC
             vcsc_pipeline.channel.use_turbo = use_turbo
             vcsc_pipeline.channel.channel_type = channel_type
+<<<<<<< HEAD
             recon_img, stats = vcsc_pipeline.process_image(image, quantization, snr, threshold, save_dir=save_dir)
+=======
+            
+            recon_img, result = vcsc_pipeline.process_image(
+                image, 
+                quantization, 
+                snr, 
+                threshold, 
+                save_dir=save_dir,
+                return_detections=enable_detection
+            )
+            
+            stats = result['stats']
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
             stats['comp_bits'] = stats['compressed_bits']
             
             latent_url = f"/static/downloads/{tx_id}/latent.pt"
@@ -170,6 +277,25 @@ def handle_video_frame(data):
                 f"Dequantization -> VAE decoding ({stats['dec_time']:.2f}s)"
             ]
             
+<<<<<<< HEAD
+=======
+            # Add detection info to logs
+            if enable_detection and result.get('detections'):
+                det_url = f"/static/downloads/{tx_id}/detections.png"
+                logs.append(f"Object Detection: {len(result['detections'])} objects found -> <a href='{det_url}' target='_blank'>Download Visualization</a>")
+                for det in result['detections'][:5]:
+                    logs.append(f"  {det.class_name}: {det.confidence:.2f} @ {det.bbox}")
+                if len(result['detections']) > 5:
+                    logs.append(f"  ... and {len(result['detections']) - 5} more")
+            
+            # Add task evaluation to logs
+            if result.get('task_eval'):
+                te = result['task_eval']
+                logs.append(f"Task Evaluation ({te['task_name']}): SSIM={te['ssim']:.3f}, CLIP={te['clip_similarity']:.3f}")
+                if te.get('detection_precision'):
+                    logs.append(f"  Detection P={te['detection_precision']:.3f}, R={te['detection_recall']:.3f}, mAP={te['detection_map']:.3f}")
+        
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
         # Simulated Bandwidth processing
         snr_linear = 10 ** (snr / 10.0)
         capacity_bps = (bandwidth_mhz * 1e6) * math.log2(1 + snr_linear)
@@ -209,12 +335,47 @@ def handle_video_frame(data):
             'metrics': metrics,
             'stats': stats,
             'logs': logs
+<<<<<<< HEAD
         }, broadcast=True)
         
     except Exception as e:
         print(f"Error processing frame: {e}")
+=======
+        }
+        
+        # Add detection data if available (VCSC only)
+        if method == 'vcsc' and result and result.get('detections'):
+            response_data['detections'] = [d.to_dict() for d in result['detections']]
+            response_data['latent_rois'] = [r.to_dict() for r in result['latent_rois']]
+        
+        # Add task evaluation if available (VCSC only)
+        if method == 'vcsc' and result and result.get('task_eval'):
+            response_data['task_eval'] = result['task_eval']
+        
+        # Emit result via socketio (thread-safe)
+        socketio.emit('reconstructed_frame', response_data)
+        print(f"[Server] Frame processed and emitted (tx_id: {tx_id})")
+        
+    except Exception as e:
+        print(f"[Server] Error processing frame: {e}")
+        import traceback
+        traceback.print_exc()
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
     finally:
         is_processing = False
+
+@socketio.on('video_frame')
+def handle_video_frame(data):
+    global is_processing
+    
+    # If the server is currently processing a frame, drop this incoming frame
+    if is_processing:
+        print("[Server] Dropped frame - server busy, queue full")
+        return
+        
+    is_processing = True
+    # Use socketio background task for proper context
+    socketio.start_background_task(process_frame_async, data)
 
 if __name__ == '__main__':
     print("="*60)

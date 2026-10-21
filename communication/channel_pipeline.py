@@ -17,9 +17,20 @@ class ChannelPipeline:
         """
         Simulates the entire communication pipeline:
         Serialization -> Turbo Encode -> BPSK -> Channel -> Demodulate -> Turbo Decode -> Deserialization
+        
+        Handles both standard uint8 tensors and pre-packed multi-bit quantized data.
         """
-        # 1. Serialization
-        bits = serialize_to_bits(q)
+        # Check if data is already packed (multi-bit quantization modes)
+        is_packed = metadata.get('mode', '').endswith('bit-uniform') or 'region_metadata' in metadata
+        
+        if is_packed:
+            # For pre-packed data, q is already a 1D byte array
+            # Convert to bits directly from packed bytes
+            q_np = q.cpu().numpy() if isinstance(q, torch.Tensor) else np.array(q)
+            bits = np.unpackbits(q_np.view(np.uint8))
+        else:
+            # 1. Standard serialization for 8bit, 4bit-attn
+            bits = serialize_to_bits(q)
         
         # 2. Turbo Encoding
         if self.use_turbo:
@@ -41,14 +52,6 @@ class ChannelPipeline:
             received_symbols, h, noise_variance = rayleigh_fading_channel(symbols, snr_db)
             
             # 5. Demodulation with fading compensation (Zero Forcing / Equalization)
-            # y = h*x + n => y*conj(h) = |h|^2 * x + n_prime
-            # Equalized signal: y_eq = y * conj(h) / |h|^2 = y / h
-            # LLR for BPSK over Rayleigh: LLR = - (2 * real(y * conj(h))) / noise_variance 
-            # (Assuming 0->-1, 1->1, actually LLR = 4 * real(y * conj(h)) / N0, but with our 0->-1 it's negative)
-            # Let's do simple zero-forcing equalization first to get it back to AWGN-like symbols
-            # y_eq = received_symbols * np.conj(h) / (np.abs(h)**2)
-            # We can use the AWGN LLR formula on the equalized symbols, scaled by SNR
-            # A more precise LLR:
             llrs = -2.0 * np.real(received_symbols * np.conj(h)) / noise_variance
             
         else:
@@ -63,6 +66,11 @@ class ChannelPipeline:
             decoded_bits = (llrs < 0).astype(int)
             
         # 7. Deserialization
-        q_tilde = deserialize_from_bits(decoded_bits, metadata['shape'])
+        if is_packed:
+            # For pre-packed data, pack bits back to bytes
+            bytes_arr = np.packbits(decoded_bits)
+            q_tilde = torch.from_numpy(bytes_arr)
+        else:
+            q_tilde = deserialize_from_bits(decoded_bits, metadata['shape'])
         
         return q_tilde.to(q.device)

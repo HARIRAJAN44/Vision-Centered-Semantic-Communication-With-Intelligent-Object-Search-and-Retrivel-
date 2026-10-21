@@ -54,10 +54,22 @@ class Evaluator:
             sim = torch.nn.functional.cosine_similarity(feat1, feat2)
         return sim.item()
         
+    def calc_psnr(self, img1: Image.Image, img2: Image.Image) -> float:
+        """Calculates Peak Signal-to-Noise Ratio (PSNR)."""
+        img1_np = np.array(img1.convert("RGB"), dtype=np.float32)
+        img2_np = np.array(img2.convert("RGB"), dtype=np.float32)
+        mse = np.mean((img1_np - img2_np) ** 2)
+        if mse <= 1e-10:
+            return 100.0
+        return float(20 * np.log10(255.0 / np.sqrt(mse)))
+        
     def evaluate(self, img1: Image.Image, img2: Image.Image) -> dict:
         """Evaluates all metrics for a single image pair."""
+        clip_score = self.calc_clip(img1, img2)
         return {
             'ssim': self.calc_ssim(img1, img2),
+            'psnr': self.calc_psnr(img1, img2),
             'lpips': self.calc_lpips(img1, img2),
-            'clip': self.calc_clip(img1, img2),
+            'clip': clip_score,
+            'clip_similarity': clip_score,
         }

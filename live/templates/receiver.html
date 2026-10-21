@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>Wireless Surveillance - Receiver</title>
     <!-- Include Socket.IO client -->
     <script src="/static/socket.io.min.js"></script>
@@ -51,10 +52,109 @@
         .slider-wrapper { display: flex; align-items: center; gap: 10px; }
         .slider-wrapper span { font-family: monospace; font-size: 14px; width: 60px; text-align: right; }
         
+=======
+    <title>VCSC - Receiver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/static/js/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; min-height: 100vh; }
+
+        /* Main Layout: 3 columns full height */
+        .main { height: 100vh; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr auto; gap: 12px; padding: 12px; }
+        
+        .panel { background: #161b22; border-radius: 10px; border: 1px solid #30363d; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+        .panel-title { font-size: 11px; text-transform: uppercase; color: #8b949e; font-weight: 600; padding: 10px 12px; background: #0d1117; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.5px; }
+
+        /* Left: Live Feed */
+        .video-wrapper { position: relative; flex: 1; min-height: 400px; background: #000; margin: 0; display: flex; align-items: center; justify-content: center; }
+        .video-wrapper img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+        .watermark { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.75); padding: 5px 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 11px; color: #8b949e; border: 1px solid #30363d; z-index: 10; }
+        .watermark.live { color: #2ec856; border-color: #1f6feb; }
+        .frame-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.75); padding: 5px 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 11px; color: #58a6ff; border: 1px solid #30363d; z-index: 10; }
+        .detection-overlay { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.85); padding: 8px; border-radius: 6px; min-width: 240px; max-width: 300px; font-size: 10px; max-height: calc(100% - 20px); overflow-y: auto; z-index: 10; border: 1px solid #30363d; }
+        .detection-item { padding: 3px 0; border-bottom: 1px solid #21262d; }
+        .detection-item:last-child { border-bottom: none; }
+        .detection-class { font-family: monospace; font-size: 11px; color: #58a6ff; }
+        .detection-details { font-size: 9px; color: #8b949e; margin-top: 1px; }
+
+        /* Center: Configuration */
+        .config-panel { }
+        .config-content { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .config-section { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
+        .config-section-title { font-size: 9px; text-transform: uppercase; color: #484f58; letter-spacing: 1px; margin-bottom: 10px; }
+        .controls-grid { display: grid; gap: 10px; }
+        .control-item { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+        select, input[type="range"], input[type="number"], input[type="text"] { background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; padding: 7px 9px; border-radius: 5px; font-size: 12px; width: 100%; }
+        select:focus, input:focus { outline: none; border-color: #58a6ff; }
+        .slider-wrapper { display: flex; align-items: center; gap: 8px; }
+        .slider-wrapper input[type="range"] { flex: 1; }
+        .slider-wrapper span { font-family: 'Courier New', monospace; font-size: 11px; width: 60px; text-align: right; color: #8b949e; }
+        .checkbox-row { display: flex; align-items: center; gap: 6px; cursor: pointer; margin-top: 3px; }
+        .checkbox-row input { width: 14px; height: 14px; accent-color: #1f6feb; }
+        .checkbox-row span { font-size: 12px; color: #c9d1d9; text-transform: none; font-weight: 400; letter-spacing: 0; }
+
+        /* Right: Quality Metrics */
+        .metrics-panel { }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
+        .metric-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 6px; text-align: center; transition: border-color 0.2s; }
+        .metric-card:hover { border-color: #484f58; }
+        .metric-val, .stat-val { font-size: 18px; font-weight: 700; color: #58a6ff; line-height: 1.2; }
+        .metric-val.green, .stat-val.green { color: #2ec856; }
+        .metric-val.red, .stat-val.red { color: #f85149; }
+        .metric-val.yellow, .stat-val.yellow { color: #d29922; }
+        .metric-label, .stat-label { font-size: 9px; color: #8b949e; text-transform: uppercase; margin-top: 3px; letter-spacing: 0.5px; }
+
+        .metrics-sections { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; }
+        .metrics-section { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; }
+        .metrics-section-title { font-size: 9px; text-transform: uppercase; color: #484f58; letter-spacing: 1px; margin-bottom: 8px; }
+        .metrics-section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+        /* Bottom: Transmission Logs */
+        .logs-panel { grid-column: 1 / -1; grid-row: 2; max-height: 250px; }
+        .logs-header { display: flex; justify-content: space-between; align-items: center; }
+        .logs-toolbar { display: flex; gap: 6px; }
+        .log-container { flex: 1; overflow-y: auto; background: #0d1117; border: 1px solid #30363d; border-radius: 0 0 10px 10px; padding: 10px; font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.5; min-height: 160px; }
+        .log-entry { margin-bottom: 2px; padding: 2px 5px; border-radius: 3px; }
+        .log-time { color: #8b949e; margin-right: 6px; font-variant-numeric: tabular-nums; }
+        .log-time.success { color: #2ec856; }
+        .log-time.error { color: #f85149; }
+        .log-entry.detection { border-left: 2px solid #1f6feb; background: rgba(31,106,243,0.08); }
+        .log-entry.task { border-left: 2px solid #c584fb; background: rgba(197,132,251,0.08); }
+        .log-entry:hover { background: rgba(88,166,255,0.05); }
+
+        .btn-clear { padding: 5px 10px; background: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 5px; cursor: pointer; font-size: 10px; transition: all 0.15s; }
+        .btn-clear:hover { background: #da3633; border-color: #da3633; color: #fff; }
+        .btn-secondary { padding: 5px 10px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9; border-radius: 5px; cursor: pointer; font-weight: 500; font-size: 10px; transition: all 0.15s; }
+        .btn-secondary:hover { background: #30363d; }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main { grid-template-columns: 1fr; grid-template-rows: 1fr auto auto auto; }
+            .live-panel { grid-row: 1; min-height: 350px; }
+            .config-panel { grid-row: 2; }
+            .metrics-panel { grid-row: 3; }
+            .logs-panel { grid-row: 4; }
+        }
+        @media (max-width: 800px) {
+            .main { padding: 10px; gap: 10px; }
+            .metrics-grid { grid-template-columns: 1fr 1fr; }
+            .metrics-section-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 600px) {
+            .metrics-grid { grid-template-columns: 1fr 1fr; }
+            .metrics-section-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .loading-spinner { border: 3px solid #21262d; border-top: 3px solid #388bfd; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 16px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
     </style>
 </head>
 <body>
 
+<<<<<<< HEAD
 <div class="container">
     <div class="header">
         <h1>Wireless Vision-Centered Semantic Communication</h1>
@@ -164,6 +264,182 @@
             <button id="clear-logs-btn" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Clear Logs & Downloads</button>
         </div>
         <div class="log-container" id="log-box"></div>
+=======
+<!-- Main Content: 3 Columns -->
+<div class="main">
+    <!-- Left: Live Feed -->
+    <div class="panel live-panel">
+        <div class="panel-title">
+            Live Feed
+            <span class="frame-badge" id="frame-badge">Frames: 0</span>
+        </div>
+        <div class="video-wrapper">
+            <div class="watermark waiting" id="watermark">
+                camera input: <span id="input-status">WAITING</span>
+            </div>
+            <img id="received-video" style="display: none;">
+            <div class="detection-overlay" id="detection-overlay" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Center: Configuration -->
+    <div class="panel config-panel">
+        <div class="panel-title">Configuration</div>
+        <div class="config-content">
+            <div class="config-section">
+                <div class="config-section-title">Transmission</div>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <label>Transmission Method</label>
+                        <select id="method-select" onchange="setMethod()">
+                            <option value="vcsc" selected>VCSC (Neural)</option>
+                            <option value="jpeg">JPEG Baseline</option>
+                            <option value="huffman">Huffman</option>
+                        </select>
+                    </div>
+                    <div class="control-item">
+                        <label>Quantization Mode</label>
+                        <select id="quant-select" onchange="sendConfig()">
+                            <option value="8bit">8-bit Uniform</option>
+                            <option value="4bit-attn">4-bit Attention</option>
+                            <option value="2bit">2-bit Uniform</option>
+                            <option value="4bit">4-bit Uniform</option>
+                            <option value="6bit">6-bit Uniform</option>
+                            <option value="adaptive-multi">Adaptive Multi-Level (2/4/6/8-bit)</option>
+                        </select>
+                    </div>
+                    <div class="control-item">
+                        <label>Attention Threshold (T)</label>
+                        <select id="threshold-select" onchange="sendConfig()">
+                            <option value="0.2">0.2 (Aggressive)</option>
+                            <option value="0.4">0.4 (Conservative)</option>
+                        </select>
+                    </div>
+                    <div class="control-item">
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="turbo-check" checked onchange="sendConfig()">
+                            <span>Use Turbo Coding</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-title">Physical Channel</div>
+                <div class="controls-grid">
+                    <div class="control-item full-width">
+                        <label>Channel Noise (SNR)</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="snr" min="0" max="35" step="0.5" value="10" onchange="sendConfig()">
+                            <span id="snr-val">10.0 dB</span>
+                        </div>
+                    </div>
+                    <div class="control-item full-width">
+                        <label>Simulated Bandwidth</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="bandwidth" min="0.1" max="20" step="0.1" value="5.0" onchange="sendConfig()">
+                            <span id="bw-val">5.0 MHz</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-title">Advanced</div>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="detect-check" onchange="sendConfig()">
+                            <span>Enable Object Detection</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Quality Metrics -->
+    <div class="panel metrics-panel">
+        <div class="panel-title">Quality Metrics</div>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="stat-val" id="val-ssim">-</div>
+                <div class="stat-label">SSIM</div>
+            </div>
+            <div class="metric-card">
+                <div class="stat-val" id="val-psnr">-</div>
+                <div class="stat-label">PSNR (dB)</div>
+            </div>
+            <div class="metric-card">
+                <div class="stat-val" id="val-clip">-</div>
+                <div class="stat-label">CLIP Sim</div>
+            </div>
+            <div class="metric-card">
+                <div class="stat-val" id="val-lpips">-</div>
+                <div class="stat-label">LPIPS</div>
+            </div>
+        </div>
+        
+        <div class="metrics-sections">
+            <div class="metrics-section">
+                <div class="metrics-section-title">Payload Analysis</div>
+                <div class="metrics-section-grid">
+                    <div class="metric-card">
+                        <div class="stat-val" id="val-comp">-</div>
+                        <div class="stat-label">Compression %</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-val" id="val-payload">-</div>
+                        <div class="stat-label">Payload (KB)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-val" id="val-txdelay">-</div>
+                        <div class="stat-label">Tx Delay (ms)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-val" id="val-proctime">-</div>
+                        <div class="stat-label">Process Time (ms)</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metrics-section">
+                <div class="metrics-section-title">Allocation Stats</div>
+                <div class="metrics-section-grid">
+                    <div class="metric-card">
+                        <div class="stat-val" id="val-idealbits">-</div>
+                        <div class="stat-label">Ideal Bits</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-val" id="val-overhead">-</div>
+                        <div class="stat-label">Overhead</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-val" id="val-payload-bits">-</div>
+                        <div class="stat-label">Total Tx (bits)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-val" id="val-cr">-</div>
+                        <div class="stat-label">Compression R</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom: Transmission Logs -->
+    <div class="panel logs-panel">
+        <div class="panel-title logs-header">
+            Transmission Log
+            <div class="logs-toolbar">
+                <button id="clear-logs-btn" class="btn-clear" onclick="clearLogs()">Clear</button>
+                <button id="fetch-classes" class="btn-secondary" style="font-size: 10px; padding: 5px 10px; display: none;">📚 Load Classes</button>
+            </div>
+        </div>
+        <div class="log-container" id="log-box">
+            <div class="loading-spinner" id="log-spinner"></div>
+        </div>
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
     </div>
 </div>
 
@@ -174,6 +450,7 @@
     let socket;
     try {
         socket = io();
+        console.log('[Client] Socket.IO initialized');
     } catch(e) {
         console.error("Socket.IO not loaded. Ensure static files are accessible.");
     }
@@ -181,14 +458,58 @@
     const logBox = document.getElementById('log-box');
     const watermark = document.getElementById('watermark');
     const receivedImg = document.getElementById('received-video');
+<<<<<<< HEAD
     
     // Sliders UI update
+=======
+    const frameBadge = document.getElementById('frame-badge');
+
+    function setLiveStatus(statusText, isLive = true) {
+        const inputStatus = document.getElementById('input-status');
+        if (inputStatus) {
+            inputStatus.innerText = statusText;
+        } else if (watermark) {
+            watermark.innerText = statusText;
+        }
+        if (watermark) {
+            watermark.className = isLive ? 'watermark live' : 'watermark waiting';
+        }
+    }
+
+    function clearSpinner() {
+        const spinner = document.getElementById('log-spinner');
+        if (spinner) spinner.remove();
+    }
+
+    function logMessage(msg, type = 'info') {
+        clearSpinner();
+        const time = new Date().toLocaleTimeString('en-US', {hour12: false, fractionalSecondDigits: 3});
+        const div = document.createElement('div');
+        div.className = 'log-entry ' + type;
+        div.innerHTML = `<span class="log-time ${type}">${time}</span> ${msg}`;
+        logBox.appendChild(div);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function clearLogs() {
+        if (socket) {
+            socket.emit('clear_logs');
+        }
+    }
+
+    const clearLogsBtn = document.getElementById('clear-logs-btn');
+    if (clearLogsBtn) {
+        clearLogsBtn.addEventListener('click', clearLogs);
+    }
+
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
     document.getElementById('snr').addEventListener('input', function() {
         document.getElementById('snr-val').innerText = this.value + ' dB';
     });
     document.getElementById('bandwidth').addEventListener('input', function() {
         document.getElementById('bw-val').innerText = parseFloat(this.value).toFixed(1) + ' MHz';
     });
+<<<<<<< HEAD
     
     function logMessage(msg) {
         const time = new Date().toLocaleTimeString('en-US', {hour12: false, fractionalSecondDigits: 3});
@@ -197,6 +518,28 @@
         div.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
         logBox.appendChild(div);
         logBox.scrollTop = logBox.scrollHeight;
+=======
+
+    let config = {
+        method: currentMethod,
+        channel: 'awgn',
+        quantization: '8bit',
+        threshold: '0.2',
+        turbo: true,
+        snr: 10,
+        bandwidth: 5,
+        enable_detection: false
+    };
+
+    function setMethod() {
+        currentMethod = document.getElementById('method-select').value;
+        config.method = currentMethod;
+        updateActiveButtons();
+        if (socket) {
+            socket.emit('update_config', config);
+            logMessage(`Switched to ${currentMethod.toUpperCase()}`);
+        }
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
     }
     
     document.getElementById('clear-logs-btn').addEventListener('click', () => {
@@ -231,6 +574,7 @@
     }
     
     function sendConfig() {
+<<<<<<< HEAD
         const config = {
             method: currentMethod,
             channel: currentChannel,
@@ -242,11 +586,33 @@
         };
         if (socket) {
             socket.emit('update_config', config);
+=======
+        const method = document.getElementById('method-select').value;
+        const quant = document.getElementById('quant-select').value;
+        const snr = document.getElementById('snr').value;
+        const bw = document.getElementById('bandwidth').value;
+        const turbo = document.getElementById('turbo-check').checked;
+        
+        const detectCheckbox = document.getElementById('detect-check');
+        const detectEnabled = detectCheckbox ? detectCheckbox.checked : false;
+        
+        config.method = method;
+        config.quantization = quant;
+        config.snr = snr;
+        config.bandwidth = bw;
+        config.turbo = turbo;
+        config.enable_detection = detectEnabled;
+        
+        if (socket) {
+            socket.emit('update_config', config);
+            logMessage(`Config: ${method} | ${quant} | SNR=${snr}dB | BW=${bw}MHz | turbo=${turbo} | detect=${detectEnabled}`);
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
         }
         logMessage(`Configuration updated: ${currentMethod.toUpperCase()} | ${currentChannel.toUpperCase()} | SNR: ${config.snr}dB`);
     }
 
     if (socket) {
+<<<<<<< HEAD
         socket.on('reconstructed_frame', (data) => {
             // Update Video
             watermark.innerText = '● LIVE FEED';
@@ -278,6 +644,236 @@
             data.logs.forEach(msg => logMessage(msg));
         });
     }
+=======
+        socket.on('connect', () => {
+            console.log('[Client] Socket connected');
+            setLiveStatus('CONNECTED (READY)', true);
+            logMessage('Receiver connected to base station', 'success');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('[Client] Socket disconnected');
+            setLiveStatus('DISCONNECTED', false);
+            logMessage('Disconnected from base station', 'error');
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('[Client] Socket connect error:', err);
+            setLiveStatus('CONN ERROR', false);
+        });
+
+        socket.on('logs_cleared', () => {
+            logBox.innerHTML = '';
+            logMessage('All logs and temporary downloads have been cleared.', 'success');
+        });
+
+        socket.on('config_updated', (config_data) => {
+            if (!config_data) return;
+            if (config_data.method) {
+                currentMethod = config_data.method;
+                const methodSelect = document.getElementById('method-select');
+                if (methodSelect) methodSelect.value = config_data.method;
+                updateActiveButtons();
+            }
+            if (config_data.quantization) {
+                const quantSelect = document.getElementById('quant-select');
+                if (quantSelect) quantSelect.value = config_data.quantization;
+            }
+            if (config_data.snr !== undefined) {
+                const snrInput = document.getElementById('snr');
+                const snrVal = document.getElementById('snr-val');
+                if (snrInput) snrInput.value = config_data.snr;
+                if (snrVal) snrVal.innerText = config_data.snr + ' dB';
+            }
+            if (config_data.bandwidth !== undefined) {
+                const bwInput = document.getElementById('bandwidth');
+                const bwVal = document.getElementById('bw-val');
+                if (bwInput) bwInput.value = config_data.bandwidth;
+                if (bwVal) bwVal.innerText = parseFloat(config_data.bandwidth).toFixed(1) + ' MHz';
+            }
+            if (config_data.turbo !== undefined) {
+                const turboCheck = document.getElementById('turbo-check');
+                if (turboCheck) turboCheck.checked = Boolean(config_data.turbo);
+            }
+            if (config_data.enable_detection !== undefined) {
+                const detectCheck = document.getElementById('detect-check');
+                if (detectCheck) detectCheck.checked = Boolean(config_data.enable_detection);
+            }
+            
+            if (config_data.quantization === 'task_aware' || (config_data.quantization && config_data.quantization.startsWith('adaptive'))) {
+                logMessage('Task-aware allocation enabled', 'task');
+            }
+            if (config_data.enable_detection) {
+                logMessage('Object detection enabled');
+            }
+        });
+
+        socket.on('reconstructed_frame', (data) => {
+            console.log('[Receiver] Received reconstructed_frame:', data);
+            try {
+                clearSpinner();
+                setLiveStatus('LIVE', true);
+                
+                if (data.reconstructed) {
+                    receivedImg.src = 'data:image/jpeg;base64,' + data.reconstructed;
+                    receivedImg.style.display = 'block';
+                }
+                
+                frameCount++;
+                if (frameBadge) {
+                    frameBadge.innerText = 'Frames: ' + frameCount;
+                }
+                
+                const m = data.metrics || {};
+                const s = data.stats || {};
+                
+                // Quality Metrics
+                updateStat('val-ssim', m.ssim, m.ssim && m.ssim < 0.5 ? 'red' : 'green');
+                updateStat('val-psnr', m.psnr, m.psnr && m.psnr < 20 ? 'yellow' : 'green', 2);
+                const clipVal = m.clip_similarity !== undefined ? m.clip_similarity : m.clip;
+                updateStat('val-clip', clipVal, clipVal && clipVal < 0.7 ? 'yellow' : 'green');
+                updateStat('val-lpips', m.lpips, m.lpips && m.lpips > 0.5 ? 'yellow' : 'green');
+                
+                // Payload Analysis
+                const compEl = document.getElementById('val-comp');
+                if (compEl) {
+                    compEl.innerText = (s.compression_rate !== undefined && s.compression_rate !== null) 
+                        ? s.compression_rate.toFixed(1) + '%' : '-';
+                }
+                
+                const payloadEl = document.getElementById('val-payload');
+                if (payloadEl) {
+                    payloadEl.innerText = s.comp_bits ? (s.comp_bits / 8000).toFixed(1) + ' KB' : '-';
+                }
+                
+                const txDelayEl = document.getElementById('val-txdelay');
+                if (txDelayEl) {
+                    txDelayEl.innerText = (s.transmission_time_ms !== undefined && s.transmission_time_ms !== null) 
+                        ? s.transmission_time_ms.toFixed(1) + ' ms' : '-';
+                }
+                
+                const procTimeEl = document.getElementById('val-proctime');
+                const encTime = s.enc_time || 0;
+                const decTime = s.dec_time || 0;
+                const totalProcMs = (encTime + decTime) * 1000;
+                if (procTimeEl) {
+                    procTimeEl.innerText = totalProcMs > 0 ? totalProcMs.toFixed(0) + ' ms' : '-';
+                }
+                
+                // Allocation Stats
+                if (s.payload_info) {
+                    const p = s.payload_info;
+                    const idealEl = document.getElementById('val-idealbits');
+                    if (idealEl) idealEl.innerText = p.ideal_bits ? p.ideal_bits.toLocaleString() : '-';
+                    const ovhEl = document.getElementById('val-overhead');
+                    if (ovhEl) ovhEl.innerText = p.allocation_overhead_bits ? p.allocation_overhead_bits.toLocaleString() : '-';
+                    const txBitsEl = document.getElementById('val-payload-bits');
+                    if (txBitsEl) txBitsEl.innerText = p.total_transmitted_bits ? p.total_transmitted_bits.toLocaleString() : '-';
+                    const crEl = document.getElementById('val-cr');
+                    if (crEl) crEl.innerText = p.compression_ratio_vs_8bit ? (p.compression_ratio_vs_8bit * 100).toFixed(1) + 'x' : '-';
+                }
+                
+                // Transmission Logs
+                const sep = document.createElement('hr');
+                sep.style.borderColor = '#30363d';
+                sep.style.margin = '8px 0';
+                logBox.appendChild(sep);
+                
+                if (data.logs && Array.isArray(data.logs)) {
+                    addLogHTML(data.logs);
+                }
+                
+                // Detections Visualization
+                if (data.detections && data.detections.length > 0) {
+                    renderDetectionViz(data.detections);
+                } else {
+                    const overlay = document.getElementById('detection-overlay');
+                    if (overlay) overlay.style.display = 'none';
+                }
+                
+                // Task Evaluation
+                if (data.task_eval) {
+                    logMessage(`[Task: ${data.task_eval.task_name}] SSIM=${data.task_eval.ssim.toFixed(3)}, CLIP=${data.task_eval.clip_similarity.toFixed(3)}`, 'task');
+                    if (data.task_eval.detection_precision) {
+                        logMessage(`  → Det P=${data.task_eval.detection_precision.toFixed(3)} R=${data.task_eval.detection_recall.toFixed(3)} mAP=${data.task_eval.detection_map.toFixed(3)}`, 'task');
+                        logMessage(`  ✓ Task metrics available for ${data.task_eval.task_type}`, 'success');
+                    }
+                }
+            } catch (err) {
+                console.error('[Receiver] Error processing reconstructed_frame event:', err);
+            }
+        });
+    }
+
+    function updateStat(id, value, colorClass = '', decimals = 3) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (value === undefined || value === null || isNaN(value)) {
+            el.innerText = '-';
+            el.classList.remove('green', 'red', 'yellow');
+            return;
+        }
+        const formatted = typeof value === 'number' ? value.toFixed(decimals) : value;
+        el.innerText = formatted;
+        el.classList.remove('green', 'red', 'yellow');
+        if (colorClass) el.classList.add(colorClass);
+    }
+
+    function addLogHTML(logs) {
+        logs.forEach(msg => {
+            if (msg.includes('<a')) {
+                logMessage(msg);
+            } else if (msg.match(/\[Task:/)) {
+                logMessage(msg, 'task');
+            } else if (msg.match(/^→ /)) {
+                logMessage(msg, 'task');
+            } else if (msg.match(/\d+\s+objects found/)) {
+                logMessage(msg, 'detection');
+            } else {
+                logMessage(msg);
+            }
+        });
+    }
+
+    function renderDetectionViz(detections) {
+        const overlay = document.getElementById('detection-overlay');
+        if (!overlay) return;
+        if (!detections || detections.length === 0) {
+            overlay.style.display = 'none';
+            return;
+        }
+        overlay.style.display = 'block';
+        const html = detections.slice(0, 8).map(d => {
+            const conf = d.confidence !== undefined ? (d.confidence * 100).toFixed(1) : '0.0';
+            const latentBbox = d.latent_bbox ? `(${d.latent_bbox[0]},${d.latent_bbox[1]})-${d.latent_bbox[2]},${d.latent_bbox[3]}` : '-';
+            const imgBbox = d.bbox ? `x=${d.bbox[0].toFixed(0)}, y=${d.bbox[1].toFixed(0)}, w=${(d.bbox[2]-d.bbox[0]).toFixed(1)}, h=${(d.bbox[3]-d.bbox[1]).toFixed(1)}` : '-';
+            return `<div class="detection-item">
+                <div class="detection-class">${d.class_name || 'Object'} [${conf}%]</div>
+                <div class="detection-details">
+                    Latent: ${latentBbox} | Image: ${imgBbox}
+                </div>
+            </div>`;
+        }).join('');
+        overlay.innerHTML = html;
+    }
+
+    window.addEventListener('load', () => {
+        fetch('/api/detection/classes')
+            .then(r => r.json())
+            .then(data => {
+                if (data.classes && data.classes.length > 0) {
+                    logMessage(`Loaded ${data.classes.length} COCO classes`);
+                    const fetchBtn = document.getElementById('fetch-classes');
+                    if (fetchBtn) fetchBtn.style.display = 'block';
+                }
+            })
+            .catch(() => {
+                logMessage('Failed to load detection classes', 'error');
+                const fetchBtn = document.getElementById('fetch-classes');
+                if (fetchBtn) fetchBtn.style.display = 'block';
+            });
+    });
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
 </script>
 </body>
 </html>

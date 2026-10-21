@@ -15,3 +15,8 @@ flask
 komm
 pytest
 flask-socketio
+<<<<<<< HEAD
+=======
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+>>>>>>> a8a67b3 (enabling object detection with proper files no sensitive dats leaked okay with proper readme files)
